@@ -1,0 +1,25 @@
+{
+  "name": "autumn-recruitment-platform",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "vitest run --workspace vitest.workspace.ts",
+    "test:watch": "vitest --workspace vitest.workspace.ts",
+    "lint": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}

@@ -1,0 +1,45 @@
+# Data Model
+
+The MVP uses local SQLite with migrations and backup-friendly files.
+
+## `sources`
+
+Stores configured information sources.
+
+Key fields: `id`, `name`, `type`, `base_url`, `adapter_type`, `mode`, `compliance_status`, `trust_level`, `scope`, `enabled`, `crawl_frequency`, `last_run_at`, `last_status`, `notes`, `created_at`, `updated_at`.
+
+## `crawl_tasks`
+
+Stores collection task runs.
+
+Key fields: `id`, `source_id`, `trigger_type`, `status`, `started_at`, `finished_at`, `discovered_count`, `review_item_count`, `error_count`, `error_summary`.
+
+## `review_items`
+
+Stores candidate jobs or changes pending review.
+
+Key fields: `id`, `source_id`, `task_id`, `candidate_payload`, `normalized_payload`, `raw_snapshot_id`, `dedupe_key`, `confidence`, `status`, `review_notes`, `created_at`, `updated_at`.
+
+## `jobs`
+
+Stores approved jobs.
+
+Key fields: `id`, `company_type`, `company_name`, `business_unit`, `title`, `normalized_role`, `job_family`, `job_type`, `campus_batch`, `graduation_window`, `city`, `country_region`, `remote_policy`, `start_date`, `deadline`, `status`, `priority`, `tech_stack`, `certificate_requirements`, `qualification_notes`, `education_requirement`, `major_requirement`, `language_requirement`, `experience_requirement`, `salary_range`, `jd`, `requirements`, `source_id`, `source_url`, `apply_url`, `apply_method`, `requires_login`, `requires_captcha`, `resume_format`, `custom_questions_schema`, `source_trust_level`, `dedupe_key`, `created_at`, `updated_at`.
+
+## `job_snapshots`
+
+Stores raw source state and historical versions.
+
+Key fields: `id`, `job_id`, `source_id`, `source_url`, `content_hash`, `raw_content`, `parsed_payload`, `attachment_paths`, `captured_at`.
+
+## `manual_items`
+
+Stores manual-only source records.
+
+Key fields: `id`, `platform`, `company_name`, `job_title`, `search_keywords`, `source_url`, `tech_stack_keywords`, `certificate_notes`, `required_action`, `requires_login`, `requires_captcha`, `apply_method`, `reminder_at`, `priority`, `status`, `linked_job_id`, `notes`, `created_at`, `updated_at`.
+
+## `audit_logs`
+
+Stores review and state-transition history.
+
+Key fields: `id`, `entity_type`, `entity_id`, `action`, `before_payload`, `after_payload`, `notes`, `created_at`.
