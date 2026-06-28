@@ -8,7 +8,7 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
-button, input, textarea { font: inherit; }
+button, input, select, textarea { font: inherit; }
 
 button {
   border: 1px solid #1f5f8b;
@@ -181,19 +181,46 @@ tbody tr:hover, tbody tr.is-selected { background: #eef6fb; }
 .stack-list li > div, .source-list li > div:first-child { gap: 4px; }
 .manual-form { gap: 12px; }
 
-.manual-form label {
+.filter-panel {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(6, minmax(120px, 1fr));
+}
+
+.filter-panel label, .manual-form label {
   color: #384657;
   display: grid;
   font-size: 13px;
   gap: 6px;
 }
 
-.manual-form input, .manual-form textarea {
+.filter-panel input, .filter-panel select,
+.manual-form input, .manual-form select, .manual-form textarea {
   border: 1px solid #cbd5df;
   border-radius: 6px;
   color: #17212b;
   padding: 9px 10px;
   width: 100%;
+}
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metadata-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metadata-grid span {
+  border: 1px solid #e3e8ee;
+  border-radius: 6px;
+  color: #405062;
+  font-size: 12px;
+  padding: 7px 8px;
 }
 
 .check-grid {
@@ -215,7 +242,7 @@ tbody tr:hover, tbody tr.is-selected { background: #eef6fb; }
 .empty-state { color: #66788a; font-size: 13px; }
 
 @media (max-width: 1100px) {
-  .primary-grid, .secondary-grid { grid-template-columns: 1fr; }
+  .primary-grid, .secondary-grid, .filter-panel { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {

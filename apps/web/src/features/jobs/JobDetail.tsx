@@ -5,6 +5,8 @@ type JobDetailProps = {
 };
 
 export function JobDetail({ job }: JobDetailProps) {
+  const manualStatus = job.manualActionStatus === "done" ? "无需人工" : job.manualActionStatus;
+
   return (
     <aside className="panel detail-panel" aria-labelledby="detail-title">
       <div className="section-heading">
@@ -13,8 +15,17 @@ export function JobDetail({ job }: JobDetailProps) {
       </div>
       <div className="detail-header">
         <strong>{job.title}</strong>
-        <span>{job.company} · {job.city}</span>
+        <span>{job.companyName} · {job.city}</span>
       </div>
+      <section className="metadata-grid" aria-label="来源与人工状态">
+        <span>来源 {job.sourceName} · {job.sourceType}</span>
+        <span>来源链接 {job.sourceUrl}</span>
+        <span>置信度 {Math.round(job.sourceConfidence * 100)}%</span>
+        <span>人工状态 {manualStatus}</span>
+        <span>登录 {job.sourceRequiresLogin ? "是" : "否"}</span>
+        <span>验证码 {job.sourceRequiresCaptcha ? "是" : "否"}</span>
+        {job.requiredAction ? <span>需处理动作 {job.requiredAction}</span> : null}
+      </section>
       <section>
         <h3>JD</h3>
         <p>{job.description}</p>
@@ -38,7 +49,7 @@ export function JobDetail({ job }: JobDetailProps) {
       <section className="tag-section">
         <h3>候选证书与资质</h3>
         <div className="tag-row">
-          {job.certificates.map((item) => (
+          {job.certificateRequirements.map((item) => (
             <span className="tag" key={item}>{item}</span>
           ))}
         </div>

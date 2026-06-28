@@ -1,20 +1,62 @@
 export type JobStatus = "待评估" | "待投递" | "已投递" | "需人工处理";
 
+export type ManualActionStatus = "pending" | "in_progress" | "done" | "ignored";
+
+export type RequiredManualAction =
+  | "manual_check"
+  | "login_required"
+  | "captcha_required"
+  | "manual_apply"
+  | "verify_official_source";
+
+export type ManualActionInput = {
+  platform: string;
+  companyName: string;
+  jobTitle: string;
+  requiredAction: RequiredManualAction;
+  searchKeywords?: string[];
+  sourceUrl?: string;
+  techStackKeywords?: string[];
+  certificateNotes?: string;
+  requiresLogin?: boolean;
+  requiresCaptcha?: boolean;
+  priority?: number;
+  status?: ManualActionStatus;
+  notes?: string;
+};
+
 export type Job = {
   id: string;
+  sourceName: string;
   sourceType: string;
-  company: string;
+  sourceUrl: string;
+  sourceConfidence: number;
+  sourceRequiresLogin: boolean;
+  sourceRequiresCaptcha: boolean;
+  manualActionStatus: ManualActionStatus;
+  requiredAction?: RequiredManualAction;
+  companyName: string;
   title: string;
   jobType: string;
   city: string;
   techStack: string[];
-  certificates: string[];
+  certificateRequirements: string[];
   deadline: string;
   status: JobStatus;
   description: string;
   requirements: string[];
   snapshots: string[];
   applicationInfo: string;
+};
+
+export type JobFilters = {
+  keyword: string;
+  jobType: string;
+  sourceType: string;
+  status: string;
+  techStack: string;
+  certificate: string;
+  manualState: string;
 };
 
 export type ReviewItem = {
@@ -50,18 +92,65 @@ export type WorkbenchData = {
   tasks: Task[];
 };
 
+export const emptyJobFilters: JobFilters = {
+  keyword: "",
+  jobType: "",
+  sourceType: "",
+  status: "",
+  techStack: "",
+  certificate: "",
+  manualState: ""
+};
+
+export function filterJobs(jobs: Job[], filters: JobFilters): Job[] {
+  const keyword = filters.keyword.trim().toLowerCase();
+
+  return jobs.filter((job) => {
+    const matchesKeyword =
+      !keyword ||
+      [job.companyName, job.title, job.city].some((value) => value.toLowerCase().includes(keyword));
+    const matchesJobType = !filters.jobType || job.jobType === filters.jobType;
+    const matchesSourceType = !filters.sourceType || job.sourceType === filters.sourceType;
+    const matchesStatus = !filters.status || job.status === filters.status;
+    const matchesTech = !filters.techStack || job.techStack.includes(filters.techStack);
+    const matchesCertificate =
+      !filters.certificate || job.certificateRequirements.includes(filters.certificate);
+    const matchesManual = !filters.manualState || job.manualActionStatus === filters.manualState;
+
+    return (
+      matchesKeyword &&
+      matchesJobType &&
+      matchesSourceType &&
+      matchesStatus &&
+      matchesTech &&
+      matchesCertificate &&
+      matchesManual
+    );
+  });
+}
+
+export function uniqueValues(values: string[]): string[] {
+  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
 export function getWorkbenchSeed(): WorkbenchData {
   return {
     jobs: [
       {
         id: "job-001",
+        sourceName: "云澜校招",
         sourceType: "校招官网",
-        company: "云澜科技",
+        sourceUrl: "https://careers.yunlan.example/jobs/frontend",
+        sourceConfidence: 0.92,
+        sourceRequiresLogin: false,
+        sourceRequiresCaptcha: false,
+        manualActionStatus: "done",
+        companyName: "云澜科技",
         title: "前端工程师",
         jobType: "全职",
         city: "上海",
         techStack: ["React", "TypeScript", "Vite"],
-        certificates: ["英语六级"],
+        certificateRequirements: ["英语六级"],
         deadline: "2026-07-15",
         status: "待投递",
         description: "负责招聘平台候选人端与运营端界面，参与组件库与性能优化。",
@@ -71,13 +160,20 @@ export function getWorkbenchSeed(): WorkbenchData {
       },
       {
         id: "job-002",
+        sourceName: "招聘平台 A",
         sourceType: "招聘平台",
-        company: "北辰数据",
+        sourceUrl: "https://jobs.example/beichen-data",
+        sourceConfidence: 0.78,
+        sourceRequiresLogin: true,
+        sourceRequiresCaptcha: false,
+        manualActionStatus: "pending",
+        requiredAction: "manual_check",
+        companyName: "北辰数据",
         title: "数据开发实习生",
         jobType: "实习",
         city: "北京",
         techStack: ["Python", "SQL", "Spark"],
-        certificates: ["无硬性要求"],
+        certificateRequirements: ["无硬性要求"],
         deadline: "2026-07-02",
         status: "待评估",
         description: "建设离线数据链路，维护招聘漏斗指标看板。",
@@ -87,13 +183,20 @@ export function getWorkbenchSeed(): WorkbenchData {
       },
       {
         id: "job-003",
+        sourceName: "企业微信内推",
         sourceType: "企业微信",
-        company: "新启智能",
+        sourceUrl: "https://wecom.example/referral/newai",
+        sourceConfidence: 0.64,
+        sourceRequiresLogin: false,
+        sourceRequiresCaptcha: true,
+        manualActionStatus: "pending",
+        requiredAction: "captcha_required",
+        companyName: "新启智能",
         title: "算法工程师",
         jobType: "全职",
         city: "深圳",
         techStack: ["Python", "PyTorch", "RAG"],
-        certificates: ["英语四级", "论文/竞赛加分"],
+        certificateRequirements: ["英语四级", "论文/竞赛加分"],
         deadline: "2026-07-20",
         status: "需人工处理",
         description: "参与简历解析、岗位匹配和推荐排序模型迭代。",

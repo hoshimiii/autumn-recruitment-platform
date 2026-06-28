@@ -35,7 +35,7 @@ export function JobTable({ jobs, selectedJobId, onSelectJob }: JobTableProps) {
                 className={job.id === selectedJobId ? "is-selected" : undefined}
               >
                 <td>{job.sourceType}</td>
-                <td>{job.company}</td>
+                <td>{job.companyName}</td>
                 <td>
                   <button type="button" className="text-button" onClick={() => onSelectJob(job.id)}>
                     {job.title}
@@ -44,13 +44,18 @@ export function JobTable({ jobs, selectedJobId, onSelectJob }: JobTableProps) {
                 <td>{job.jobType}</td>
                 <td>{job.city}</td>
                 <td>{job.techStack.join(", ")}</td>
-                <td>{job.certificates.join(", ")}</td>
+                <td>{job.certificateRequirements.join(", ")}</td>
                 <td>{job.deadline}</td>
                 <td>
                   <span className={`status status-${job.status}`}>{job.status}</span>
                 </td>
               </tr>
             ))}
+            {jobs.length === 0 ? (
+              <tr>
+                <td colSpan={9}>没有匹配的岗位。</td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>

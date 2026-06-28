@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { getWorkbenchSeed } from "./api/client";
+import { emptyJobFilters, filterJobs, getWorkbenchSeed } from "./api/client";
 import { JobDetail } from "./features/jobs/JobDetail";
+import { JobFilters } from "./features/jobs/JobFilters";
 import { JobTable } from "./features/jobs/JobTable";
 import { ManualActionForm } from "./features/manual/ManualActionForm";
 import { ReviewQueue } from "./features/review/ReviewQueue";
@@ -11,8 +12,10 @@ const navItems = ["Jobs", "Review", "Sources", "Tasks", "Manual"] as const;
 
 export function App() {
   const data = useMemo(() => getWorkbenchSeed(), []);
+  const [filters, setFilters] = useState(emptyJobFilters);
   const [selectedJobId, setSelectedJobId] = useState(data.jobs[0]?.id ?? "");
-  const selectedJob = data.jobs.find((job) => job.id === selectedJobId) ?? data.jobs[0];
+  const filteredJobs = useMemo(() => filterJobs(data.jobs, filters), [data.jobs, filters]);
+  const selectedJob = filteredJobs.find((job) => job.id === selectedJobId) ?? filteredJobs[0];
 
   const summary = [
     { label: "岗位", value: data.jobs.length },
@@ -56,8 +59,10 @@ export function App() {
           ))}
         </section>
 
+        <JobFilters jobs={data.jobs} filters={filters} onChange={setFilters} />
+
         <div className="primary-grid">
-          <JobTable jobs={data.jobs} selectedJobId={selectedJobId} onSelectJob={setSelectedJobId} />
+          <JobTable jobs={filteredJobs} selectedJobId={selectedJob?.id ?? ""} onSelectJob={setSelectedJobId} />
           {selectedJob ? <JobDetail job={selectedJob} /> : null}
         </div>
 
