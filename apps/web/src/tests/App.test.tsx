@@ -137,6 +137,17 @@ describe("App", () => {
     expect(screen.getByText("manual_apply · pending")).toBeInTheDocument();
   });
 
+  it("does not record manual submissions without a job title or search keywords", async () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText("平台"), { target: { value: "BOSS直聘" } });
+    fireEvent.change(screen.getByLabelText("公司名称"), { target: { value: "空岗位公司" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存处理记录" }));
+
+    expect(await screen.findByText("请填写岗位名称或搜索关键词。")).toBeInTheDocument();
+    expect(screen.queryByText("空岗位公司 · 未命名岗位")).not.toBeInTheDocument();
+  });
+
   it("renders an empty state when no sources are configured", () => {
     render(<SourceList sources={[]} />);
 

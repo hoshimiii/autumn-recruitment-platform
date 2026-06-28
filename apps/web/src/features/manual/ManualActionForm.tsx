@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { manualActionStatuses, requiredManualActions } from "@recruitment/domain";
 import type { ManualActionInput, ManualActionStatus, RequiredManualAction } from "../../api/client";
 
@@ -7,16 +7,27 @@ type ManualActionFormProps = {
 };
 
 export function ManualActionForm({ onSubmit = () => undefined }: ManualActionFormProps) {
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
+    const jobTitle = optionalText(data, "jobTitle");
+    const searchKeywords = splitList(readText(data, "searchKeywords"));
+
+    if (!jobTitle && searchKeywords.length === 0) {
+      setValidationError("请填写岗位名称或搜索关键词。");
+      return;
+    }
+
+    setValidationError(null);
 
     await onSubmit({
       platform: readText(data, "platform"),
       companyName: readText(data, "companyName"),
-      jobTitle: optionalText(data, "jobTitle"),
-      searchKeywords: splitList(readText(data, "searchKeywords")),
+      jobTitle,
+      searchKeywords,
       requiredAction: readText(data, "requiredAction") as RequiredManualAction,
       sourceUrl: optionalText(data, "sourceUrl"),
       techStackKeywords: splitList(readText(data, "techStackKeywords")),
@@ -114,6 +125,7 @@ export function ManualActionForm({ onSubmit = () => undefined }: ManualActionFor
           <button type="submit">保存处理记录</button>
           <button type="reset" className="secondary-button">清空</button>
         </div>
+        {validationError ? <p className="form-error" role="alert">{validationError}</p> : null}
       </form>
     </section>
   );

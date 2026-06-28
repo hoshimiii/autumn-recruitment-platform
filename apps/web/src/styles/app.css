@@ -239,6 +239,7 @@ tbody tr:hover, tbody tr.is-selected { background: #eef6fb; }
 }
 
 .manual-form .check-label input { width: auto; }
+.form-error { color: #b42318; font-size: 13px; margin: 0; }
 .empty-state { color: #66788a; font-size: 13px; }
 
 @media (max-width: 1100px) {
