@@ -1,5 +1,13 @@
 # Change Log
 
+## 2026-06-28
+
+- Added runnable MVP foundation for the local-first autumn recruitment platform.
+- Added SQLite persistence for jobs and manual action records.
+- Added Fastify API routes for jobs, sources, tasks, review items, and manual records.
+- Added React workbench UI with filters, job details, source trust, tech stack, certificate, review, and manual action surfaces.
+- Verified the foundation with lint, unit tests, build, and Playwright E2E.
+
 ## 2026-06-27
 
 - Established documentation baseline for product, technical, QA, and governance records.
