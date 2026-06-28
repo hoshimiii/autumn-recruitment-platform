@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { App } from "../App";
+import { SourceList } from "../features/sources/SourceList";
 
 describe("App", () => {
   it("renders the job workbench with tech stack and certificate columns", () => {
@@ -17,5 +18,11 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: "人工处理" })).toBeInTheDocument();
     expect(screen.getByLabelText("需要登录")).toBeInTheDocument();
     expect(screen.getByLabelText("需要验证码")).toBeInTheDocument();
+  });
+
+  it("renders an empty state when no sources are configured", () => {
+    render(<SourceList sources={[]} />);
+
+    expect(screen.getByText("暂无岗位来源。")).toBeInTheDocument();
   });
 });
