@@ -44,8 +44,15 @@ describe("SQLite persistence", () => {
     const secondDb = openDatabase(dbPath);
     migrate(secondDb);
 
-    expect(createJobRepository(secondDb).list({ keyword: "腾讯" })).toHaveLength(1);
-    expect(createManualItemRepository(secondDb).list()).toHaveLength(1);
+    const jobs = createJobRepository(secondDb).list({ keyword: "腾讯" });
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]?.techStack).toEqual(["Java"]);
+    expect(jobs[0]?.certificateRequirements).toEqual([]);
+
+    const manualItems = createManualItemRepository(secondDb).list();
+    expect(manualItems).toHaveLength(1);
+    expect(manualItems[0]?.requiresLogin).toBe(true);
+    expect(manualItems[0]?.requiresCaptcha).toBe(false);
     secondDb.close();
   });
 });
