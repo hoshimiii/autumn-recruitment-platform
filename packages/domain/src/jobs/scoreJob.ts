@@ -17,6 +17,8 @@ const MAX_SOURCE_SCORE = 30;
 const MAX_DEADLINE_SCORE = 15;
 const MAX_TECH_SCORE = 25;
 const MAX_CERTIFICATE_SCORE = 10;
+const CLOSED_DEADLINE_PENALTY = 30;
+const MISSING_REQUIRED_CERTIFICATE_PENALTY = 20;
 
 const sourceTrustScores: Record<SourceTrust, number> = {
   official: MAX_SOURCE_SCORE,
@@ -39,9 +41,35 @@ export function scoreJob(input: ScoreJobInput): number {
     sourceTrustScores[input.sourceTrustLevel] +
     deadlineScores[input.deadlineStatus] +
     scoreTechMatch(input.techStack, input.userTechStack) +
-    scoreCertificateFit(input.certificateRequirements, input.userCertificates);
+    scoreCertificateFit(input.certificateRequirements, input.userCertificates) -
+    scoreRequiredCertificatePenalty(input.certificateRequirements, input.userCertificates) -
+    scoreDeadlinePenalty(input.deadlineStatus);
 
   return boundScore(Math.round(score));
+}
+
+function scoreRequiredCertificatePenalty(
+  certificateRequirements: CertificateRequirement[],
+  userCertificates: string[]
+): number {
+  const requiredCertificates = certificateRequirements.filter(
+    (requirement) => requirement.level === "required"
+  );
+
+  if (requiredCertificates.length === 0) {
+    return 0;
+  }
+
+  const normalizedUserCertificates = new Set(userCertificates.map(normalizeToken));
+  const hasMissingRequiredCertificate = requiredCertificates
+    .map((requirement) => normalizeToken(requirement.name))
+    .some((certificateName) => !normalizedUserCertificates.has(certificateName));
+
+  return hasMissingRequiredCertificate ? MISSING_REQUIRED_CERTIFICATE_PENALTY : 0;
+}
+
+function scoreDeadlinePenalty(deadlineStatus: DeadlineStatus): number {
+  return deadlineStatus === "closed" ? CLOSED_DEADLINE_PENALTY : 0;
 }
 
 function scoreTechMatch(jobTechStack: string[], userTechStack: string[]): number {

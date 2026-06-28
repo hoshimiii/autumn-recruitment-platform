@@ -24,4 +24,21 @@ describe("normalizeJobCandidate", () => {
     ]);
     expect(job.deadline).toBe("2026-09-20");
   });
+
+  it("marks CET-4 as required when required wording is present", () => {
+    const job = normalizeJobCandidate({
+      companyName: "山东高速集团",
+      title: "后端开发工程师",
+      companyType: "provincial_soe",
+      jobType: "campus",
+      city: "济南",
+      jd: "参与 Java 后端开发。",
+      requirements: "要求通过英语四级，CET-4 required，相关项目经验优先。",
+      sourceUrl: "https://example.com/job"
+    });
+
+    expect(job.certificateRequirements).toEqual([
+      { name: "CET-4", level: "required" }
+    ]);
+  });
 });

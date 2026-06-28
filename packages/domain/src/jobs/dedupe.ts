@@ -1,8 +1,10 @@
+import type { JobType } from "./jobTypes.js";
+
 export type JobDedupeInput = {
   companyName: string;
   title: string;
   city: string;
-  jobType: string;
+  jobType: JobType;
   deadline?: string;
 };
 

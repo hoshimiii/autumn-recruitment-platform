@@ -1,4 +1,4 @@
-import type { CertificateRequirementLevel } from "./jobTypes.js";
+import type { CertificateRequirementLevel, CompanyType, JobType } from "./jobTypes.js";
 
 export type { CertificateRequirementLevel } from "./jobTypes.js";
 
@@ -10,8 +10,8 @@ export type CertificateRequirement = {
 export type JobCandidateInput = {
   companyName: string;
   title: string;
-  companyType: string;
-  jobType: string;
+  companyType: CompanyType;
+  jobType: JobType;
   city: string;
   jd: string;
   requirements: string;
@@ -61,7 +61,29 @@ function detectCertificateRequirements(text: string): CertificateRequirement[] {
     return [];
   }
 
-  const level: CertificateRequirementLevel = /(优先|加分)/.test(text) ? "bonus" : "unknown";
+  const level: CertificateRequirementLevel = detectCET4RequirementLevel(text);
 
   return [{ name: "CET-4", level }];
+}
+
+function detectCET4RequirementLevel(text: string): CertificateRequirementLevel {
+  if (hasRequiredCET4Wording(text)) {
+    return "required";
+  }
+
+  if (/(优先|加分)/.test(text)) {
+    return "bonus";
+  }
+
+  return "unknown";
+}
+
+function hasRequiredCET4Wording(text: string): boolean {
+  return [
+    /(必备|要求).{0,12}(英语四级|CET-?4)/i,
+    /(英语四级|CET-?4).{0,12}(必备|要求)/i,
+    /(需通过|通过).{0,12}(英语四级|CET-?4)/i,
+    /(英语四级|CET-?4).{0,12}(required)/i,
+    /(required).{0,12}(英语四级|CET-?4)/i
+  ].some((pattern) => pattern.test(text));
 }
