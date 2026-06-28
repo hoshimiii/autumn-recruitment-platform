@@ -11,7 +11,7 @@ The source policy returns explicit block reasons:
 - `forbidden`
 - `unknown`
 
-Blocked sources are skipped and recorded in task output. They do not invoke adapters.
+Blocked sources are skipped and recorded in task output. They do not invoke adapters. `source.compliance_status = unknown` is a blocked source state, not a review queue state.
 
 ## Adapter Errors
 
@@ -19,7 +19,7 @@ Adapter failures are captured per source with error summary and error count. A f
 
 ## Parsing Confidence
 
-Low-confidence attachment parsing, unknown pages, third-party aggregators, WeChat or article reposts, and LLM-extracted records enter review before approval.
+Low-confidence attachment parsing, unknown pages from known compliant sources, third-party aggregators, WeChat or article reposts, and LLM-extracted records enter review before approval.
 
 ## API Errors
 

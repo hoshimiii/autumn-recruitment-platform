@@ -4,6 +4,8 @@
 
 - Automatic collection runs only for enabled whitelist sources whose policy allows collection.
 - Disabled, manual-only, forbidden, login-required, captcha-required, and unknown compliance sources are skipped.
+- `source.compliance_status = unknown` blocks automatic collection until the source is classified.
+- Unknown or low-confidence pages and parse results discovered from a known compliant source go to review instead of direct approval.
 - Collection is bounded to configured sources and records task status, timing, discovered count, review item count, error count, and error summary.
 - Failed sources do not block remaining sources in the same run.
 

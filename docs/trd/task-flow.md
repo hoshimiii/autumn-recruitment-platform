@@ -3,12 +3,12 @@
 ## Collection Run
 
 1. Load enabled whitelist sources.
-2. Skip manual-only, forbidden, login-required, and captcha-required sources.
+2. Skip manual-only, forbidden, login-required, captcha-required, and unknown compliance sources.
 3. Run the matching adapter for each allowed source.
 4. Store raw snapshots and attachments.
 5. Normalize candidate jobs.
 6. Compute dedupe keys and change summaries.
-7. Write new or changed records to the review queue.
+7. Write new, changed, unknown-page, and low-confidence records to the review queue.
 8. Record task result, timing, counts, and errors.
 
 ## Review Flow

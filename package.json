@@ -2,16 +2,21 @@
   "name": "autumn-recruitment-platform",
   "private": true,
   "type": "module",
+  "packageManager": "npm@11.5.1",
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11 <12"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "node -e \"const fs=require('node:fs'),cp=require('node:child_process');const has=['apps','packages'].some((d)=>fs.existsSync(d)&&fs.readdirSync(d,{withFileTypes:true}).some((e)=>e.isDirectory()&&fs.existsSync(d+'/'+e.name+'/package.json')));if(!has){console.log('No workspace packages found; skipping build.');process.exit(0)}cp.execFileSync('npm',['run','build','--workspaces','--if-present'],{stdio:'inherit',shell:process.platform==='win32'})\"",
     "test": "vitest run --workspace vitest.workspace.ts",
     "test:watch": "vitest --workspace vitest.workspace.ts",
-    "lint": "npm run typecheck --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "node -e \"const fs=require('node:fs'),cp=require('node:child_process');const has=['apps','packages'].some((d)=>fs.existsSync(d)&&fs.readdirSync(d,{withFileTypes:true}).some((e)=>e.isDirectory()&&fs.existsSync(d+'/'+e.name+'/package.json')));if(!has){console.log('No workspace packages found; skipping typecheck.');process.exit(0)}cp.execFileSync('npm',['run','typecheck','--workspaces','--if-present'],{stdio:'inherit',shell:process.platform==='win32'})\"",
+    "typecheck": "node -e \"const fs=require('node:fs'),cp=require('node:child_process');const has=['apps','packages'].some((d)=>fs.existsSync(d)&&fs.readdirSync(d,{withFileTypes:true}).some((e)=>e.isDirectory()&&fs.existsSync(d+'/'+e.name+'/package.json')));if(!has){console.log('No workspace packages found; skipping typecheck.');process.exit(0)}cp.execFileSync('npm',['run','typecheck','--workspaces','--if-present'],{stdio:'inherit',shell:process.platform==='win32'})\"",
     "dev:api": "npm run dev -w apps/api",
     "dev:web": "npm run dev -w apps/web",
     "e2e": "playwright test"

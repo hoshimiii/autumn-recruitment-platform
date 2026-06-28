@@ -8,11 +8,15 @@
 - Public attachments linked from official notices.
 - Trusted public index pages when used only for discovery and official-link backtracking.
 
-## Review-Required Collection
+## Unknown Source Classification
+
+`source.compliance_status = unknown` blocks automatic collection. A source must be classified as allowed or review-required before an adapter can run.
+
+## Review-Required Results From Compliant Sources
 
 - Third-party aggregators.
 - WeChat or article reposts.
-- Unknown pages.
+- Unknown pages discovered from a known compliant source.
 - LLM-extracted records.
 - Low-confidence attachment parsing.
 

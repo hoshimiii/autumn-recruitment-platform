@@ -10,7 +10,7 @@ Only allowed or review-required sources can be collected automatically.
 
 As a user, I can trigger one-shot collection or allow scheduled collection for enabled whitelist sources so new or changed jobs are discovered without broad crawling.
 
-Collection loads enabled whitelist sources, skips manual-only, forbidden, login-required, and captcha-required sources, runs the matching adapter, stores raw snapshots and attachments, normalizes candidate jobs, computes dedupe keys and change summaries, writes new or changed records to the review queue, and records timing, counts, and errors.
+Collection loads enabled whitelist sources, skips manual-only, forbidden, login-required, captcha-required, and unknown compliance sources, runs the matching adapter, stores raw snapshots and attachments, normalizes candidate jobs, computes dedupe keys and change summaries, writes new or changed records to the review queue, and records timing, counts, and errors.
 
 Collection is low-frequency, bounded, source-scoped, and snapshot-based. Failed sources do not block other sources.
 
