@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:deps": "npm run build -w @recruitment/domain && npm run build -w @recruitment/db",
+    "build:deps": "npm run build -w @recruitment/domain",
     "predev": "npm run build:deps",
     "dev": "vite --host 127.0.0.1",
     "prebuild": "npm run build:deps",
