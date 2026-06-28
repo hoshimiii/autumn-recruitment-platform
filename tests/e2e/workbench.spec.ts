@@ -94,3 +94,23 @@ test("ops child routes keep operational work outside the home display", async ({
     await expect(page.locator(".sidebar a[aria-current='page']")).toBeVisible();
   }
 });
+
+test("ops page header stays compact instead of stretching into a hero panel", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 950 });
+  await page.goto("/ops/review");
+
+  const headerMetrics = await page.locator(".topbar").evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const heading = element.querySelector("h1")?.getBoundingClientRect();
+
+    return {
+      height: box.height,
+      headingOffsetTop: heading ? heading.top - box.top : null,
+      width: box.width
+    };
+  });
+
+  expect(headerMetrics.width).toBeGreaterThan(1200);
+  expect(headerMetrics.height).toBeLessThanOrEqual(76);
+  expect(headerMetrics.headingOffsetTop).toBeLessThanOrEqual(18);
+});
