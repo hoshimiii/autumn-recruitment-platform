@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS manual_items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   platform TEXT NOT NULL,
   company_name TEXT NOT NULL,
-  job_title TEXT NOT NULL,
+  job_title TEXT,
   search_keywords TEXT NOT NULL DEFAULT '[]',
   source_url TEXT,
   tech_stack_keywords TEXT NOT NULL DEFAULT '[]',

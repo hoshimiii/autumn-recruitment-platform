@@ -40,6 +40,32 @@ describe("API", () => {
     await app.close();
   });
 
+  it("creates manual action records from search keywords when job title is omitted", async () => {
+    const app = await buildApp({ databasePath: ":memory:" });
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/manual-items",
+      payload: {
+        platform: "BOSS直聘",
+        companyName: "关键词公司",
+        searchKeywords: ["秋招", "数据分析"],
+        requiredAction: "manual_apply",
+        status: "pending"
+      }
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().item).toMatchObject({
+      platform: "BOSS直聘",
+      companyName: "关键词公司",
+      jobTitle: null,
+      searchKeywords: ["秋招", "数据分析"],
+      requiredAction: "manual_apply"
+    });
+
+    await app.close();
+  });
+
   it("lists manual action records created in the same app instance", async () => {
     const app = await buildApp({ databasePath: ":memory:" });
 

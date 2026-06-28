@@ -1,23 +1,20 @@
 export type JobStatus = "待评估" | "待投递" | "已投递" | "需人工处理";
 
-export type ManualActionStatus = "pending" | "in_progress" | "done" | "ignored";
+import type { ManualActionStatus, RequiredManualAction, SourceTrust } from "@recruitment/domain";
 
-export type RequiredManualAction =
-  | "manual_check"
-  | "login_required"
-  | "captcha_required"
-  | "manual_apply"
-  | "verify_official_source";
+export type { ManualActionStatus, RequiredManualAction, SourceTrust } from "@recruitment/domain";
 
 export type ManualActionInput = {
   platform: string;
   companyName: string;
-  jobTitle: string;
+  jobTitle?: string;
   requiredAction: RequiredManualAction;
   searchKeywords?: string[];
   sourceUrl?: string;
   techStackKeywords?: string[];
   certificateNotes?: string;
+  applyMethod?: string;
+  reminderAt?: string;
   requiresLogin?: boolean;
   requiresCaptcha?: boolean;
   priority?: number;
@@ -33,15 +30,22 @@ export type Job = {
   sourceConfidence: number;
   sourceRequiresLogin: boolean;
   sourceRequiresCaptcha: boolean;
+  sourceTrust: SourceTrust;
   manualActionStatus: ManualActionStatus;
   requiredAction?: RequiredManualAction;
+  companyType: string;
   companyName: string;
   title: string;
+  jobFamily: string;
   jobType: string;
   city: string;
   techStack: string[];
   certificateRequirements: string[];
   deadline: string;
+  deadlineStatus: string;
+  applicationStatus: string;
+  reviewStatus: string;
+  priority: number;
   status: JobStatus;
   description: string;
   requirements: string[];
@@ -51,11 +55,19 @@ export type Job = {
 
 export type JobFilters = {
   keyword: string;
+  companyType: string;
+  companyName: string;
+  jobFamily: string;
   jobType: string;
+  city: string;
   sourceType: string;
   status: string;
   techStack: string;
   certificate: string;
+  deadlineStatus: string;
+  sourceTrust: string;
+  applicationStatus: string;
+  reviewStatus: string;
   manualState: string;
 };
 
@@ -94,11 +106,19 @@ export type WorkbenchData = {
 
 export const emptyJobFilters: JobFilters = {
   keyword: "",
+  companyType: "",
+  companyName: "",
+  jobFamily: "",
   jobType: "",
+  city: "",
   sourceType: "",
   status: "",
   techStack: "",
   certificate: "",
+  deadlineStatus: "",
+  sourceTrust: "",
+  applicationStatus: "",
+  reviewStatus: "",
   manualState: ""
 };
 
@@ -110,20 +130,36 @@ export function filterJobs(jobs: Job[], filters: JobFilters): Job[] {
       !keyword ||
       [job.companyName, job.title, job.city].some((value) => value.toLowerCase().includes(keyword));
     const matchesJobType = !filters.jobType || job.jobType === filters.jobType;
+    const matchesCompanyType = !filters.companyType || job.companyType === filters.companyType;
+    const matchesCompanyName = !filters.companyName || job.companyName === filters.companyName;
+    const matchesJobFamily = !filters.jobFamily || job.jobFamily === filters.jobFamily;
+    const matchesCity = !filters.city || job.city === filters.city;
     const matchesSourceType = !filters.sourceType || job.sourceType === filters.sourceType;
     const matchesStatus = !filters.status || job.status === filters.status;
     const matchesTech = !filters.techStack || job.techStack.includes(filters.techStack);
     const matchesCertificate =
       !filters.certificate || job.certificateRequirements.includes(filters.certificate);
+    const matchesDeadline = !filters.deadlineStatus || job.deadlineStatus === filters.deadlineStatus;
+    const matchesSourceTrust = !filters.sourceTrust || job.sourceTrust === filters.sourceTrust;
+    const matchesApplication = !filters.applicationStatus || job.applicationStatus === filters.applicationStatus;
+    const matchesReview = !filters.reviewStatus || job.reviewStatus === filters.reviewStatus;
     const matchesManual = !filters.manualState || job.manualActionStatus === filters.manualState;
 
     return (
       matchesKeyword &&
+      matchesCompanyType &&
+      matchesCompanyName &&
+      matchesJobFamily &&
       matchesJobType &&
+      matchesCity &&
       matchesSourceType &&
       matchesStatus &&
       matchesTech &&
       matchesCertificate &&
+      matchesDeadline &&
+      matchesSourceTrust &&
+      matchesApplication &&
+      matchesReview &&
       matchesManual
     );
   });
@@ -131,129 +167,4 @@ export function filterJobs(jobs: Job[], filters: JobFilters): Job[] {
 
 export function uniqueValues(values: string[]): string[] {
   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b, "zh-CN"));
-}
-
-export function getWorkbenchSeed(): WorkbenchData {
-  return {
-    jobs: [
-      {
-        id: "job-001",
-        sourceName: "云澜校招",
-        sourceType: "校招官网",
-        sourceUrl: "https://careers.yunlan.example/jobs/frontend",
-        sourceConfidence: 0.92,
-        sourceRequiresLogin: false,
-        sourceRequiresCaptcha: false,
-        manualActionStatus: "done",
-        companyName: "云澜科技",
-        title: "前端工程师",
-        jobType: "全职",
-        city: "上海",
-        techStack: ["React", "TypeScript", "Vite"],
-        certificateRequirements: ["英语六级"],
-        deadline: "2026-07-15",
-        status: "待投递",
-        description: "负责招聘平台候选人端与运营端界面，参与组件库与性能优化。",
-        requirements: ["计算机相关专业", "熟悉 React 状态管理", "具备基础工程化经验"],
-        snapshots: ["岗位详情页已归档", "薪资范围已截图", "投递入口可用"],
-        applicationInfo: "推荐使用中文简历，附件格式 PDF，投递后 3 个工作日内跟进。"
-      },
-      {
-        id: "job-002",
-        sourceName: "招聘平台 A",
-        sourceType: "招聘平台",
-        sourceUrl: "https://jobs.example/beichen-data",
-        sourceConfidence: 0.78,
-        sourceRequiresLogin: true,
-        sourceRequiresCaptcha: false,
-        manualActionStatus: "pending",
-        requiredAction: "manual_check",
-        companyName: "北辰数据",
-        title: "数据开发实习生",
-        jobType: "实习",
-        city: "北京",
-        techStack: ["Python", "SQL", "Spark"],
-        certificateRequirements: ["无硬性要求"],
-        deadline: "2026-07-02",
-        status: "待评估",
-        description: "建设离线数据链路，维护招聘漏斗指标看板。",
-        requirements: ["每周到岗 4 天以上", "理解数据仓库分层", "能编写稳定 SQL"],
-        snapshots: ["平台列表页已归档", "JD 文本已抽取"],
-        applicationInfo: "需要补充项目经历后再投递。"
-      },
-      {
-        id: "job-003",
-        sourceName: "企业微信内推",
-        sourceType: "企业微信",
-        sourceUrl: "https://wecom.example/referral/newai",
-        sourceConfidence: 0.64,
-        sourceRequiresLogin: false,
-        sourceRequiresCaptcha: true,
-        manualActionStatus: "pending",
-        requiredAction: "captcha_required",
-        companyName: "新启智能",
-        title: "算法工程师",
-        jobType: "全职",
-        city: "深圳",
-        techStack: ["Python", "PyTorch", "RAG"],
-        certificateRequirements: ["英语四级", "论文/竞赛加分"],
-        deadline: "2026-07-20",
-        status: "需人工处理",
-        description: "参与简历解析、岗位匹配和推荐排序模型迭代。",
-        requirements: ["熟悉机器学习基础", "有模型评测经验", "能阅读英文论文"],
-        snapshots: ["内推链接已保存", "验证码页面待处理"],
-        applicationInfo: "投递入口需要验证码，处理后同步状态。"
-      }
-    ],
-    reviewQueue: [
-      {
-        id: "review-001",
-        title: "算法工程师",
-        company: "新启智能",
-        reason: "证书要求与候选人档案匹配度待确认",
-        priority: "高"
-      },
-      {
-        id: "review-002",
-        title: "数据开发实习生",
-        company: "北辰数据",
-        reason: "到岗时间需要人工判断",
-        priority: "中"
-      }
-    ],
-    sources: [
-      {
-        id: "source-001",
-        name: "云澜校招",
-        type: "官网",
-        status: "正常",
-        lastSync: "2026-06-28 09:10",
-        needsLogin: false,
-        needsCaptcha: false
-      },
-      {
-        id: "source-002",
-        name: "招聘平台 A",
-        type: "平台",
-        status: "待登录",
-        lastSync: "2026-06-27 21:30",
-        needsLogin: true,
-        needsCaptcha: false
-      },
-      {
-        id: "source-003",
-        name: "企业微信内推",
-        type: "内推",
-        status: "验证码",
-        lastSync: "2026-06-28 08:42",
-        needsLogin: false,
-        needsCaptcha: true
-      }
-    ],
-    tasks: [
-      { id: "task-001", title: "补齐前端简历关键词", owner: "运营", due: "今天", state: "进行中" },
-      { id: "task-002", title: "复核 2 条高优先级岗位", owner: "审核", due: "明天", state: "待处理" },
-      { id: "task-003", title: "导出本周投递列表", owner: "系统", due: "周五", state: "排队中" }
-    ]
-  };
 }

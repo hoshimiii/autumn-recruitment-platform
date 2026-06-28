@@ -3,7 +3,7 @@ import type { SqliteDatabase } from "../connection.js";
 export interface CreateManualItemInput {
   platform: string;
   companyName: string;
-  jobTitle: string;
+  jobTitle?: string;
   searchKeywords?: string[];
   sourceUrl?: string;
   techStackKeywords?: string[];
@@ -23,7 +23,7 @@ export interface ManualItemRecord {
   id: number;
   platform: string;
   companyName: string;
-  jobTitle: string;
+  jobTitle: string | null;
   searchKeywords: string[];
   sourceUrl: string | null;
   techStackKeywords: string[];
@@ -45,7 +45,7 @@ interface ManualItemRow {
   id: number;
   platform: string;
   company_name: string;
-  job_title: string;
+  job_title: string | null;
   search_keywords: string;
   source_url: string | null;
   tech_stack_keywords: string;
@@ -111,7 +111,7 @@ export function createManualItemRepository(db: SqliteDatabase) {
       const result = insert.run({
         platform: input.platform,
         companyName: input.companyName,
-        jobTitle: input.jobTitle,
+        jobTitle: input.jobTitle ?? null,
         searchKeywords: JSON.stringify(input.searchKeywords ?? []),
         sourceUrl: input.sourceUrl ?? null,
         techStackKeywords: JSON.stringify(input.techStackKeywords ?? []),

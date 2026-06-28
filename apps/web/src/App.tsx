@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
-import { emptyJobFilters, filterJobs, getWorkbenchSeed } from "./api/client";
+import { emptyJobFilters, filterJobs } from "./api/client";
+import type { ManualActionInput } from "./api/client";
+import { getWorkbenchSeed } from "./api/workbenchSeed";
 import { JobDetail } from "./features/jobs/JobDetail";
 import { JobFilters } from "./features/jobs/JobFilters";
 import { JobTable } from "./features/jobs/JobTable";
 import { ManualActionForm } from "./features/manual/ManualActionForm";
+import { ManualRecordList } from "./features/manual/ManualRecordList";
 import { ReviewQueue } from "./features/review/ReviewQueue";
 import { SourceList } from "./features/sources/SourceList";
 import { TaskList } from "./features/tasks/TaskList";
@@ -13,6 +16,7 @@ const navItems = ["Jobs", "Review", "Sources", "Tasks", "Manual"] as const;
 export function App() {
   const data = useMemo(() => getWorkbenchSeed(), []);
   const [filters, setFilters] = useState(emptyJobFilters);
+  const [manualRecords, setManualRecords] = useState<ManualActionInput[]>([]);
   const [selectedJobId, setSelectedJobId] = useState(data.jobs[0]?.id ?? "");
   const filteredJobs = useMemo(() => filterJobs(data.jobs, filters), [data.jobs, filters]);
   const selectedJob = filteredJobs.find((job) => job.id === selectedJobId) ?? filteredJobs[0];
@@ -23,6 +27,10 @@ export function App() {
     { label: "需人工", value: data.sources.filter((source) => source.needsLogin || source.needsCaptcha).length },
     { label: "任务", value: data.tasks.length }
   ];
+
+  const handleManualSubmit = (record: ManualActionInput) => {
+    setManualRecords((current) => [record, ...current]);
+  };
 
   return (
     <div className="app-shell">
@@ -70,7 +78,8 @@ export function App() {
           <ReviewQueue items={data.reviewQueue} />
           <SourceList sources={data.sources} />
           <TaskList tasks={data.tasks} />
-          <ManualActionForm />
+          <ManualActionForm onSubmit={handleManualSubmit} />
+          <ManualRecordList records={manualRecords} />
         </div>
       </main>
     </div>

@@ -1,17 +1,10 @@
 import type { FormEvent } from "react";
-import type { ManualActionInput, RequiredManualAction } from "../../api/client";
+import { manualActionStatuses, requiredManualActions } from "@recruitment/domain";
+import type { ManualActionInput, ManualActionStatus, RequiredManualAction } from "../../api/client";
 
 type ManualActionFormProps = {
   onSubmit?: (record: ManualActionInput) => Promise<void> | void;
 };
-
-const actionOptions: RequiredManualAction[] = [
-  "manual_check",
-  "login_required",
-  "captcha_required",
-  "manual_apply",
-  "verify_official_source"
-];
 
 export function ManualActionForm({ onSubmit = () => undefined }: ManualActionFormProps) {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -22,16 +15,19 @@ export function ManualActionForm({ onSubmit = () => undefined }: ManualActionFor
     await onSubmit({
       platform: readText(data, "platform"),
       companyName: readText(data, "companyName"),
-      jobTitle: readText(data, "jobTitle"),
+      jobTitle: optionalText(data, "jobTitle"),
+      searchKeywords: splitList(readText(data, "searchKeywords")),
       requiredAction: readText(data, "requiredAction") as RequiredManualAction,
       sourceUrl: optionalText(data, "sourceUrl"),
       techStackKeywords: splitList(readText(data, "techStackKeywords")),
       certificateNotes: optionalText(data, "certificateNotes"),
+      applyMethod: optionalText(data, "applyMethod"),
+      reminderAt: optionalText(data, "reminderAt"),
       priority: Number(readText(data, "priority") || 0),
       requiresLogin: data.get("requiresLogin") === "on",
       requiresCaptcha: data.get("requiresCaptcha") === "on",
       notes: optionalText(data, "notes"),
-      status: "pending"
+      status: readText(data, "status") as ManualActionStatus
     });
   };
 
@@ -53,15 +49,35 @@ export function ManualActionForm({ onSubmit = () => undefined }: ManualActionFor
           </label>
           <label>
             岗位名称
-            <input name="jobTitle" required placeholder="岗位标题" />
+            <input name="jobTitle" placeholder="岗位标题或留空使用关键词" />
+          </label>
+          <label>
+            搜索关键词
+            <input name="searchKeywords" placeholder="秋招, 数据分析" />
           </label>
           <label>
             需处理动作
             <select name="requiredAction" defaultValue="manual_check">
-              {actionOptions.map((action) => (
+              {requiredManualActions.map((action) => (
                 <option key={action} value={action}>{action}</option>
               ))}
             </select>
+          </label>
+          <label>
+            处理状态
+            <select name="status" defaultValue="pending">
+              {manualActionStatuses.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            投递方式
+            <input name="applyMethod" placeholder="官网表单、邮件、内推" />
+          </label>
+          <label>
+            提醒时间
+            <input name="reminderAt" type="datetime-local" />
           </label>
           <label>
             来源链接

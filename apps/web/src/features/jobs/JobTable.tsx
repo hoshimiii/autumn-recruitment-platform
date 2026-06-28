@@ -22,6 +22,8 @@ export function JobTable({ jobs, selectedJobId, onSelectJob }: JobTableProps) {
               <th>岗位</th>
               <th>岗位类型</th>
               <th>城市</th>
+              <th>来源可信度</th>
+              <th>优先级</th>
               <th>技术栈</th>
               <th>证书/资质</th>
               <th>截止日期</th>
@@ -43,6 +45,8 @@ export function JobTable({ jobs, selectedJobId, onSelectJob }: JobTableProps) {
                 </td>
                 <td>{job.jobType}</td>
                 <td>{job.city}</td>
+                <td>{job.sourceTrust}</td>
+                <td>P{job.priority}</td>
                 <td>{job.techStack.join(", ")}</td>
                 <td>{job.certificateRequirements.join(", ")}</td>
                 <td>{job.deadline}</td>
@@ -53,7 +57,7 @@ export function JobTable({ jobs, selectedJobId, onSelectJob }: JobTableProps) {
             ))}
             {jobs.length === 0 ? (
               <tr>
-                <td colSpan={9}>没有匹配的岗位。</td>
+                <td colSpan={11}>没有匹配的岗位。</td>
               </tr>
             ) : null}
           </tbody>

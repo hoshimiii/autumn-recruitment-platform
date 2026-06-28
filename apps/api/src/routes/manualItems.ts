@@ -9,7 +9,7 @@ export type ManualItemRepository = ReturnType<typeof createManualItemRepository>
 const manualItemInputSchema = z.object({
   platform: z.string().min(1),
   companyName: z.string().min(1),
-  jobTitle: z.string().min(1),
+  jobTitle: z.string().min(1).optional(),
   searchKeywords: z.array(z.string()).optional(),
   sourceUrl: z.string().url().optional(),
   techStackKeywords: z.array(z.string()).optional(),
@@ -23,6 +23,9 @@ const manualItemInputSchema = z.object({
   status: z.enum(manualActionStatuses).optional(),
   linkedJobId: z.number().int().positive().optional(),
   notes: z.string().optional()
+}).refine((input) => input.jobTitle || (input.searchKeywords?.length ?? 0) > 0, {
+  message: "jobTitle or searchKeywords is required",
+  path: ["jobTitle"]
 });
 
 export async function registerManualItemsRoutes(app: FastifyInstance, context: RouteContext): Promise<void> {
