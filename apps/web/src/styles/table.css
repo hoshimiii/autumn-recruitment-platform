@@ -1,0 +1,76 @@
+.table-wrap {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  width: 100%;
+}
+
+th, td {
+  border-bottom: 1px solid #e7ecf2;
+  color: #252c36;
+  font-size: 12px;
+  line-height: 1.35;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding: 9px 7px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  background: #fbfcfe;
+  color: #647184;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  white-space: normal;
+}
+
+tbody tr { transition: background 120ms ease, box-shadow 120ms ease; }
+tbody tr:hover { background: #f8fbff; }
+
+tbody tr.is-selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+th:nth-child(1), td:nth-child(1) { width: 9%; }
+th:nth-child(2), td:nth-child(2) { width: 10%; }
+th:nth-child(3), td:nth-child(3) { width: 12%; }
+th:nth-child(4), td:nth-child(4),
+th:nth-child(5), td:nth-child(5) { width: 7%; }
+th:nth-child(6), td:nth-child(6) { width: 9%; }
+th:nth-child(7), td:nth-child(7),
+th:nth-child(11), td:nth-child(11) { width: 6%; }
+th:nth-child(8), td:nth-child(8) { width: 14%; }
+th:nth-child(9), td:nth-child(9) { width: 12%; }
+th:nth-child(10), td:nth-child(10) { width: 8%; }
+
+.text-button {
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: #2750b8;
+  display: inline;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.text-button:hover {
+  background: transparent;
+  color: #132f77;
+  text-decoration: underline;
+}
+
+@media (max-width: 960px) {
+  .table-wrap { overflow-x: auto; }
+  table { min-width: 900px; table-layout: auto; }
+}

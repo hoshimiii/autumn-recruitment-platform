@@ -56,3 +56,22 @@ test("workbench shows job trust metadata and visible manual records", async ({ p
   await expect(manualRecords).toContainText("login_required · pending");
   await expect(manualRecords).toContainText("P2");
 });
+
+test("desktop workbench keeps the job table readable without inner horizontal scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/");
+
+  const tableMetrics = await page.locator(".job-table-panel .table-wrap").evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    rowHeights: Array.from(element.querySelectorAll("tbody tr")).map((row) => row.getBoundingClientRect().height),
+    scrollWidth: element.scrollWidth,
+    viewportWidth: window.innerWidth,
+    bodyScrollWidth: document.documentElement.scrollWidth
+  }));
+  const detailBox = await page.getByRole("complementary", { name: "岗位详情" }).boundingBox();
+
+  expect(tableMetrics.scrollWidth).toBeLessThanOrEqual(tableMetrics.clientWidth + 1);
+  expect(tableMetrics.bodyScrollWidth).toBeLessThanOrEqual(tableMetrics.viewportWidth + 1);
+  expect(Math.max(...tableMetrics.rowHeights)).toBeLessThanOrEqual(96);
+  expect(detailBox?.width).toBeGreaterThan(300);
+});

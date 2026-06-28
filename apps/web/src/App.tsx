@@ -75,11 +75,15 @@ export function App() {
         </div>
 
         <div className="secondary-grid">
-          <ReviewQueue items={data.reviewQueue} />
-          <SourceList sources={data.sources} />
-          <TaskList tasks={data.tasks} />
-          <ManualActionForm onSubmit={handleManualSubmit} />
-          <ManualRecordList records={manualRecords} />
+          <div className="secondary-column">
+            <ReviewQueue items={data.reviewQueue} />
+            <TaskList tasks={data.tasks} />
+          </div>
+          <div className="secondary-column">
+            <SourceList sources={data.sources} />
+            <ManualActionForm onSubmit={handleManualSubmit} />
+            <ManualRecordList records={manualRecords} />
+          </div>
         </div>
       </main>
     </div>

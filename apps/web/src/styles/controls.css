@@ -1,0 +1,72 @@
+.filter-panel, .form-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.filter-panel {
+  grid-template-columns: minmax(160px, 1.4fr) repeat(6, minmax(104px, 1fr));
+}
+
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.manual-form {
+  display: grid;
+  gap: 11px;
+}
+
+.filter-panel label, .manual-form label {
+  color: #3f4855;
+  display: grid;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 5px;
+}
+
+.filter-panel input, .filter-panel select,
+.manual-form input, .manual-form select, .manual-form textarea {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--ink);
+  font-size: 12px;
+  min-height: 34px;
+  padding: 8px 9px;
+  width: 100%;
+}
+
+.filter-panel input:focus, .filter-panel select:focus,
+.manual-form input:focus, .manual-form select:focus, .manual-form textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 91, 213, 0.13);
+  outline: 0;
+}
+
+.check-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.manual-form .check-label {
+  align-items: center;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  gap: 8px;
+  padding: 8px 9px;
+}
+
+.manual-form .check-label input { width: auto; }
+.form-error { color: var(--danger); font-size: 12px; margin: 0; }
+.empty-state { color: var(--ink-subtle); font-size: 12px; }
+
+@media (max-width: 1180px) {
+  .filter-panel { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 960px) {
+  .filter-panel, .form-grid { grid-template-columns: 1fr; }
+}
