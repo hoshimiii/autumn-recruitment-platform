@@ -1,16 +1,9 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { App } from "./App";
+import { mount as mountRecruitmentApp, shouldAutoMount, unmount as unmountRecruitmentApp } from "./microApp/lifecycle";
 import "./styles/app.css";
 
-const rootElement = document.getElementById("root");
-
-if (!rootElement) {
-  throw new Error("Root element not found");
+if (shouldAutoMount(window)) {
+  mountRecruitmentApp();
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+export const mount = mountRecruitmentApp;
+export const unmount = unmountRecruitmentApp;

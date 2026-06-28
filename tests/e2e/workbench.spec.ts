@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-test("workbench shows job trust metadata and visible manual records", async ({ page }) => {
+test("home display shows job trust metadata while add route handles manual records", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "岗位工作台" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "岗位展示" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "任务" })).toHaveCount(0);
 
   const jobTable = page.getByRole("table");
   await expect(jobTable).toContainText("来源可信度");
@@ -27,6 +28,9 @@ test("workbench shows job trust metadata and visible manual records", async ({ p
   await expect(detail).toContainText("登录 否");
   await expect(detail).toContainText("验证码 是");
   await expect(detail).toContainText("需处理动作 captcha_required");
+
+  await page.goto("/ops/add");
+  await expect(page.getByRole("heading", { name: "添加/导入" })).toBeVisible();
 
   const manualPanel = page.getByRole("region", { name: "人工处理" });
   await expect(manualPanel.getByLabel("平台")).toBeVisible();
@@ -74,4 +78,19 @@ test("desktop workbench keeps the job table readable without inner horizontal sc
   expect(tableMetrics.bodyScrollWidth).toBeLessThanOrEqual(tableMetrics.viewportWidth + 1);
   expect(Math.max(...tableMetrics.rowHeights)).toBeLessThanOrEqual(96);
   expect(detailBox?.width).toBeGreaterThan(300);
+});
+
+test("ops child routes keep operational work outside the home display", async ({ page }) => {
+  const expectedRoutes = [
+    { path: "/ops/review", title: "岗位复核", panel: "复核队列" },
+    { path: "/ops/config", title: "来源配置", panel: "来源清单" },
+    { path: "/ops/tasks", title: "任务队列", panel: "任务" }
+  ];
+
+  for (const route of expectedRoutes) {
+    await page.goto(route.path);
+    await expect(page.getByRole("heading", { name: route.title })).toBeVisible();
+    await expect(page.getByRole("heading", { exact: true, name: route.panel })).toBeVisible();
+    await expect(page.locator(".sidebar a[aria-current='page']")).toBeVisible();
+  }
 });

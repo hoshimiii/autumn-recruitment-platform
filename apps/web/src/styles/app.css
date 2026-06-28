@@ -29,7 +29,7 @@ body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
 h1, h2, h3, p { margin: 0; }
 
-button {
+button, .button-link {
   align-items: center;
   background: var(--ink);
   border: 1px solid var(--ink);
@@ -42,9 +42,10 @@ button {
   justify-content: center;
   min-height: 34px;
   padding: 7px 12px;
+  text-decoration: none;
 }
 
-button:hover { background: #2a303a; }
+button:hover, .button-link:hover { background: #2a303a; }
 .secondary-button { background: var(--surface); border-color: var(--border); color: var(--ink); }
 .secondary-button:hover { background: var(--surface-soft); }
 
@@ -83,6 +84,8 @@ button:hover { background: #2a303a; }
 }
 
 .sidebar a:hover { background: #1d2530; color: #fff; }
+.sidebar a[aria-current="page"] { background: #fff; color: #11161d; font-weight: 700; }
+.sidebar .nav-start-group { margin-top: 12px; }
 
 .workbench {
   display: grid;
@@ -149,6 +152,15 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
   gap: 14px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
+.ops-grid {
+  align-items: start;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+}
+
+.ops-grid.single-column { grid-template-columns: 1fr; }
 
 .secondary-column {
   align-content: start;
@@ -241,7 +253,8 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
 .stack-list li > div, .source-list li > div:first-child { gap: 3px; }
 
 @media (max-width: 960px) {
-  .primary-grid, .secondary-grid, .detail-panel, .metadata-grid { grid-template-columns: 1fr; }
+  .primary-grid, .secondary-grid, .ops-grid,
+  .detail-panel, .metadata-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 760px) {

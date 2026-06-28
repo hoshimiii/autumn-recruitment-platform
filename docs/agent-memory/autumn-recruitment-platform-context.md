@@ -4,7 +4,7 @@ Updated: 2026-06-28
 
 ## Current Objective
 
-Polish the local-first autumn recruitment platform into a visually acceptable MVP before showing it to the user. The current user request is to continue autonomously to a final product and, before final presentation, have a subagent review basic functionality and visual/layout quality, including whether each component is logically and aesthetically placed.
+Continue the local-first autumn recruitment platform toward a final MVP. The latest user request is to split content by route, remove operational task/review/source/manual panels from the home display, and make the web app compatible with a future `@micro-zoe/micro-app` host as a child application.
 
 ## Repository State
 
@@ -20,22 +20,21 @@ Polish the local-first autumn recruitment platform into a visually acceptable MV
 - Domain package covers source policy, job normalization/dedupe/scoring, and manual action enums.
 - DB package contains SQLite schema and repositories for jobs/manual records.
 - API package exposes foundation routes for jobs, sources, tasks, review items, and manual items.
-- Web app contains a workbench with:
-  - left nav
-  - summary band
-  - job filters
-  - job table
-  - job detail panel
-  - review queue
-  - source monitor
-  - task list
-  - manual action form
-  - visible manual records list
+- Web app now has route-separated pages:
+  - `/`: job display home page with summary, filters, job table, and job detail.
+  - `/ops/add`: add/import work, import contract panel, manual action form, and manual records.
+  - `/ops/review`: review queue and pending-review job table.
+  - `/ops/config`: source configuration.
+  - `/ops/tasks`: operational task queue.
 - Playwright E2E exists at `tests/e2e/workbench.spec.ts`.
 
-## Current Visual Problem
+## Current Architecture Notes
 
-The current UI is functional but visually rough. The user highlighted the job table: oversized rows, harsh card border, awkward horizontal scrollbar, weak hierarchy, basic link styling, and an unattractive selected cell/row state. The polish should make the platform feel like a quiet, utilitarian recruitment operations workbench.
+- Routing is intentionally lightweight and local to `apps/web/src/routing`; no router dependency has been added yet.
+- The child app strips `window.__MICRO_APP_BASE_ROUTE__` when embedded by a future micro-app host.
+- `apps/web/src/main.tsx` exports `mount` and `unmount` lifecycle functions and only auto-mounts when `window.__MICRO_APP_ENVIRONMENT__` is false.
+- `apps/web/vite.config.ts` adds React plugin, CORS headers, and `MICRO_APP_PUBLIC_PATH` support for future hosted asset paths.
+- The home page should remain display-first. Operational content belongs under `/ops/*`.
 
 ## Design Direction
 
@@ -61,7 +60,7 @@ Keep the app light, not dark. Avoid marketing-page styling. Avoid decorative gra
 - Keep files under about 300 lines when feasible.
 - Use `apply_patch` for edits.
 - Do not overwrite unrelated user changes.
-- Follow TDD where practical. For this visual polish, add/update a Playwright test first that fails on the current desktop table overflow/layout weakness, then make CSS/component changes.
+- Follow TDD where practical. For route or lifecycle changes, add failing unit/E2E tests before implementation.
 - Existing checks to run before final:
   - `npm run lint`
   - `npm test`
@@ -79,4 +78,3 @@ Spawn a fresh subagent reviewer after implementation. Ask it to inspect:
 - no obvious overlap, clipping, awkward scrollbar, or bad mobile/desktop layout
 
 Only present the result to the user after addressing any blocking reviewer findings.
-

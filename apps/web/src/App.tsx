@@ -1,35 +1,33 @@
 import { useMemo, useState } from "react";
+import type { MouseEvent } from "react";
 import { emptyJobFilters, filterJobs } from "./api/client";
 import type { ManualActionInput } from "./api/client";
 import { getWorkbenchSeed } from "./api/workbenchSeed";
-import { JobDetail } from "./features/jobs/JobDetail";
-import { JobFilters } from "./features/jobs/JobFilters";
-import { JobTable } from "./features/jobs/JobTable";
-import { ManualActionForm } from "./features/manual/ManualActionForm";
-import { ManualRecordList } from "./features/manual/ManualRecordList";
-import { ReviewQueue } from "./features/review/ReviewQueue";
-import { SourceList } from "./features/sources/SourceList";
-import { TaskList } from "./features/tasks/TaskList";
-
-const navItems = ["Jobs", "Review", "Sources", "Tasks", "Manual"] as const;
+import { OpsAddPage } from "./pages/OpsAddPage";
+import { OpsConfigPage } from "./pages/OpsConfigPage";
+import { HomePage } from "./pages/HomePage";
+import { OpsReviewPage } from "./pages/OpsReviewPage";
+import { OpsTasksPage } from "./pages/OpsTasksPage";
+import { navItems } from "./routing/routes";
+import { useAppRoute } from "./routing/useAppRoute";
+import type { AppRoute } from "./routing/routes";
 
 export function App() {
   const data = useMemo(() => getWorkbenchSeed(), []);
+  const { hrefFor, navigate, routePath } = useAppRoute();
   const [filters, setFilters] = useState(emptyJobFilters);
   const [manualRecords, setManualRecords] = useState<ManualActionInput[]>([]);
   const [selectedJobId, setSelectedJobId] = useState(data.jobs[0]?.id ?? "");
   const filteredJobs = useMemo(() => filterJobs(data.jobs, filters), [data.jobs, filters]);
   const selectedJob = filteredJobs.find((job) => job.id === selectedJobId) ?? filteredJobs[0];
 
-  const summary = [
-    { label: "岗位", value: data.jobs.length },
-    { label: "待复核", value: data.reviewQueue.length },
-    { label: "需人工", value: data.sources.filter((source) => source.needsLogin || source.needsCaptcha).length },
-    { label: "任务", value: data.tasks.length }
-  ];
-
   const handleManualSubmit = (record: ManualActionInput) => {
     setManualRecords((current) => [record, ...current]);
+  };
+
+  const handleNavClick = (event: MouseEvent<HTMLAnchorElement>, path: AppRoute) => {
+    event.preventDefault();
+    navigate(path);
   };
 
   return (
@@ -40,52 +38,49 @@ export function App() {
           <span>秋招运营台</span>
         </div>
         <nav>
-          {navItems.map((item) => (
-            <a key={item} href={`#${item.toLowerCase()}`}>{item}</a>
+          {navItems.map((item, index) => (
+            <a
+              aria-current={routePath === item.path ? "page" : undefined}
+              className={index === 1 ? "nav-start-group" : undefined}
+              href={hrefFor(item.path)}
+              key={item.path}
+              onClick={(event) => handleNavClick(event, item.path)}
+            >
+              {item.label}
+            </a>
           ))}
         </nav>
       </aside>
 
-      <main className="workbench" id="jobs">
-        <header className="topbar">
-          <div>
-            <h1>岗位工作台</h1>
-            <p>集中查看岗位、来源、复核与人工处理状态。</p>
-          </div>
-          <div className="toolbar" aria-label="工作台操作">
-            <button type="button" className="secondary-button">导入岗位</button>
-            <button type="button">创建任务</button>
-          </div>
-        </header>
+      {routePath === "/" ? (
+        <HomePage
+          filters={filters}
+          filteredJobs={filteredJobs}
+          hrefFor={hrefFor}
+          jobs={data.jobs}
+          onFiltersChange={setFilters}
+          onNavigate={navigate}
+          onSelectJob={setSelectedJobId}
+          selectedJob={selectedJob}
+          selectedJobId={selectedJob?.id ?? ""}
+        />
+      ) : null}
 
-        <section className="summary-band" aria-label="概览">
-          {summary.map((item) => (
-            <div className="summary-item" key={item.label}>
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-            </div>
-          ))}
-        </section>
+      {routePath === "/ops/add" ? (
+        <OpsAddPage manualRecords={manualRecords} onManualSubmit={handleManualSubmit} />
+      ) : null}
 
-        <JobFilters jobs={data.jobs} filters={filters} onChange={setFilters} />
+      {routePath === "/ops/review" ? (
+        <OpsReviewPage
+          jobs={data.jobs}
+          onSelectJob={setSelectedJobId}
+          reviewQueue={data.reviewQueue}
+          selectedJobId={selectedJobId}
+        />
+      ) : null}
 
-        <div className="primary-grid">
-          <JobTable jobs={filteredJobs} selectedJobId={selectedJob?.id ?? ""} onSelectJob={setSelectedJobId} />
-          {selectedJob ? <JobDetail job={selectedJob} /> : null}
-        </div>
-
-        <div className="secondary-grid">
-          <div className="secondary-column">
-            <ReviewQueue items={data.reviewQueue} />
-            <TaskList tasks={data.tasks} />
-          </div>
-          <div className="secondary-column">
-            <SourceList sources={data.sources} />
-            <ManualActionForm onSubmit={handleManualSubmit} />
-            <ManualRecordList records={manualRecords} />
-          </div>
-        </div>
-      </main>
+      {routePath === "/ops/config" ? <OpsConfigPage sources={data.sources} /> : null}
+      {routePath === "/ops/tasks" ? <OpsTasksPage tasks={data.tasks} /> : null}
     </div>
   );
 }

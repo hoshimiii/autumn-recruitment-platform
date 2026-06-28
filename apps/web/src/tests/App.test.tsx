@@ -1,24 +1,55 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { ManualActionForm } from "../features/manual/ManualActionForm";
 import { SourceList } from "../features/sources/SourceList";
 
 describe("App", () => {
-  it("renders the job workbench with tech stack and certificate columns", () => {
+  beforeEach(() => {
+    window.history.pushState({}, "", "/");
+  });
+
+  it("renders the home job display with tech stack and certificate columns", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "岗位工作台" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "岗位展示" })).toBeInTheDocument();
     expect(screen.getByText("技术栈")).toBeInTheDocument();
     expect(screen.getByText("证书/资质")).toBeInTheDocument();
   });
 
-  it("renders the manual action form for login and captcha sources", () => {
+  it("keeps operational task, review, source and manual panels out of the home display", () => {
     render(<App />);
 
+    expect(screen.queryByRole("heading", { name: "任务" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "复核队列" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "来源配置" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "人工处理" })).not.toBeInTheDocument();
+  });
+
+  it("renders manual import and add work under the ops add route", () => {
+    window.history.pushState({}, "", "/ops/add");
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "添加/导入" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "人工处理" })).toBeInTheDocument();
     expect(screen.getByLabelText("需要登录")).toBeInTheDocument();
     expect(screen.getByLabelText("需要验证码")).toBeInTheDocument();
+  });
+
+  it("renders review and source configuration under separate ops child routes", () => {
+    window.history.pushState({}, "", "/ops/review");
+    const { rerender } = render(<App />);
+
+    expect(screen.getByRole("heading", { name: "岗位复核" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "复核队列" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "来源配置" })).not.toBeInTheDocument();
+
+    window.history.pushState({}, "", "/ops/config");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    rerender(<App />);
+
+    expect(screen.getByRole("heading", { name: "来源配置" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "复核队列" })).not.toBeInTheDocument();
   });
 
   it("filters jobs by keyword and updates the selected detail", () => {
@@ -125,6 +156,7 @@ describe("App", () => {
   });
 
   it("records manual submissions in the real App workbench state", async () => {
+    window.history.pushState({}, "", "/ops/add");
     render(<App />);
 
     fireEvent.change(screen.getByLabelText("平台"), { target: { value: "BOSS直聘" } });
@@ -138,6 +170,7 @@ describe("App", () => {
   });
 
   it("does not record manual submissions without a job title or search keywords", async () => {
+    window.history.pushState({}, "", "/ops/add");
     render(<App />);
 
     fireEvent.change(screen.getByLabelText("平台"), { target: { value: "BOSS直聘" } });

@@ -2,13 +2,14 @@ import type { Source } from "../../api/client";
 
 type SourceListProps = {
   sources: Source[];
+  title?: string;
 };
 
-export function SourceList({ sources }: SourceListProps) {
+export function SourceList({ sources, title = "来源配置" }: SourceListProps) {
   return (
     <section className="panel" id="sources" aria-labelledby="sources-title">
       <div className="section-heading">
-        <h2 id="sources-title">来源监控</h2>
+        <h2 id="sources-title">{title}</h2>
         <span>{sources.length} 个来源</span>
       </div>
       {sources.length === 0 ? (
