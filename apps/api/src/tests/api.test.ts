@@ -40,6 +40,70 @@ describe("API", () => {
     await app.close();
   });
 
+  it("lists manual action records created in the same app instance", async () => {
+    const app = await buildApp({ databasePath: ":memory:" });
+
+    await app.inject({
+      method: "POST",
+      url: "/api/manual-items",
+      payload: {
+        platform: "BOSS直聘",
+        companyName: "某公司",
+        jobTitle: "后端开发",
+        requiredAction: "manual_check",
+        status: "pending"
+      }
+    });
+
+    const response = await app.inject({ method: "GET", url: "/api/manual-items" });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items).toMatchObject([
+      {
+        platform: "BOSS直聘",
+        companyName: "某公司",
+        jobTitle: "后端开发",
+        requiredAction: "manual_check",
+        status: "pending"
+      }
+    ]);
+
+    await app.close();
+  });
+
+  it("rejects invalid manual action enum values without persisting them", async () => {
+    const app = await buildApp({ databasePath: ":memory:" });
+    const invalidRequiredAction = await app.inject({
+      method: "POST",
+      url: "/api/manual-items",
+      payload: {
+        platform: "BOSS直聘",
+        companyName: "某公司",
+        jobTitle: "后端开发",
+        requiredAction: "collect_everything",
+        status: "pending"
+      }
+    });
+    const invalidStatus = await app.inject({
+      method: "POST",
+      url: "/api/manual-items",
+      payload: {
+        platform: "BOSS直聘",
+        companyName: "某公司",
+        jobTitle: "后端开发",
+        requiredAction: "manual_check",
+        status: "stuck"
+      }
+    });
+    const list = await app.inject({ method: "GET", url: "/api/manual-items" });
+
+    expect(invalidRequiredAction.statusCode).toBe(400);
+    expect(invalidStatus.statusCode).toBe(400);
+    expect(list.json()).toEqual({ items: [] });
+
+    await app.close();
+  });
+
   it("rejects invalid manual action records", async () => {
     const app = await buildApp({ databasePath: ":memory:" });
     const response = await app.inject({

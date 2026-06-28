@@ -1,4 +1,5 @@
 import type { createManualItemRepository } from "@recruitment/db";
+import { manualActionStatuses, requiredManualActions } from "@recruitment/domain";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { RouteContext } from "../app.js";
@@ -13,13 +14,13 @@ const manualItemInputSchema = z.object({
   sourceUrl: z.string().url().optional(),
   techStackKeywords: z.array(z.string()).optional(),
   certificateNotes: z.string().optional(),
-  requiredAction: z.string().min(1),
+  requiredAction: z.enum(requiredManualActions),
   requiresLogin: z.boolean().optional(),
   requiresCaptcha: z.boolean().optional(),
   applyMethod: z.string().optional(),
   reminderAt: z.string().optional(),
   priority: z.number().int().optional(),
-  status: z.string().optional(),
+  status: z.enum(manualActionStatuses).optional(),
   linkedJobId: z.number().int().positive().optional(),
   notes: z.string().optional()
 });

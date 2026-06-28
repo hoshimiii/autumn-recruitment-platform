@@ -31,43 +31,49 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   ensureDatabaseDirectory(databasePath);
 
   const db = openDatabase(databasePath);
-  migrate(db);
 
-  app.setErrorHandler((error, _request, reply) => {
-    if (error instanceof ZodError) {
-      return reply.status(400).send({
-        error: {
-          code: "validation_error",
-          message: "Invalid request payload"
-        }
-      });
-    }
+  try {
+    migrate(db);
 
-    return reply.send(error);
-  });
+    app.setErrorHandler((error, _request, reply) => {
+      if (error instanceof ZodError) {
+        return reply.status(400).send({
+          error: {
+            code: "validation_error",
+            message: "Invalid request payload"
+          }
+        });
+      }
 
-  const context: RouteContext = {
-    db,
-    jobs: createJobRepository(db),
-    manualItems: createManualItemRepository(db)
-  };
+      return reply.send(error);
+    });
 
-  app.addHook("onClose", async () => {
+    const context: RouteContext = {
+      db,
+      jobs: createJobRepository(db),
+      manualItems: createManualItemRepository(db)
+    };
+
+    app.addHook("onClose", async () => {
+      db.close();
+    });
+
+    await app.register(
+      async (api) => {
+        await registerJobsRoutes(api, context);
+        await registerManualItemsRoutes(api, context);
+        await registerSourcesRoutes(api);
+        await registerTasksRoutes(api);
+        await registerReviewItemsRoutes(api);
+      },
+      { prefix: "/api" }
+    );
+
+    return app;
+  } catch (error) {
     db.close();
-  });
-
-  await app.register(
-    async (api) => {
-      await registerJobsRoutes(api, context);
-      await registerManualItemsRoutes(api, context);
-      await registerSourcesRoutes(api);
-      await registerTasksRoutes(api);
-      await registerReviewItemsRoutes(api);
-    },
-    { prefix: "/api" }
-  );
-
-  return app;
+    throw error;
+  }
 }
 
 function defaultDatabasePath(): string {
