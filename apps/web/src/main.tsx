@@ -2,8 +2,12 @@ import { mount as mountRecruitmentApp, shouldAutoMount, unmount as unmountRecrui
 import "./styles/app.css";
 
 if (shouldAutoMount(window)) {
+  document.body.classList.add("recruitment-standalone");
   mountRecruitmentApp();
 }
 
 export const mount = mountRecruitmentApp;
-export const unmount = unmountRecruitmentApp;
+export function unmount(): void {
+  unmountRecruitmentApp();
+  document.body.classList.remove("recruitment-standalone");
+}

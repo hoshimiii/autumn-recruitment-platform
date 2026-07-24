@@ -25,7 +25,8 @@ class PaginationTemplateContractTest extends CollectorTestSupport {
     Source source = sources.create(new SourceService.SourceInput("Paged fixture", "COMPANY", origin,
         origin + "/jobs?page={page}", "JSON", "JSON", "ALLOWED", "OFFICIAL", "STATE_OWNED",
         true, null, null, 0, 2, 10, "{\"itemsPath\":\"items\"}", mapping().formatted(origin),
-        null, "2026-07-25T00:00:00Z", origin + "/robots.txt", 3, false, null, null, null));
+        origin + "/terms", "2026-07-25T00:00:00Z", origin + "/robots.txt", 3,
+        false, null, null, null));
 
     CollectionRun run = workflow.runSource(source.id());
 

@@ -29,8 +29,8 @@ Initial coverage:
 - Configure approved sources without changing code.
 - Run one source or the daily collection workflow.
 - See blocked, failed, duplicate, and low-confidence candidates.
-- Edit and approve a candidate or reject it with an audit trail.
-- Configure an optional AI classifier without exposing secrets in stored records.
+- Inspect and approve a candidate or reject it with an audit trail.
+- Record optional future AI configuration without exposing secrets.
 
 ## Functional Scope
 
@@ -40,13 +40,13 @@ Initial coverage:
 - New jobs and recently changed jobs are visibly distinguished.
 - Filters are reflected in the URL and survive refresh.
 - Selecting a row opens complete job details without losing filter state.
-- Loading, empty, error, and stale-data states are explicit.
+- Loading, empty, and error states are explicit.
 
 ### Source and Agent configuration
 
 - Supports `JSON`, `HTML`, and `MANUAL` modes in the first delivery.
-- Stores source identity, trust level, category, URLs, schedule, rate limit,
-  selectors or field mappings, keywords, robots/terms review, and enabled state.
+- Stores source identity, trust level, category, URLs, parser mode, request limits,
+  selectors or field mappings, robots/terms evidence, and enabled state.
 - Optional AI configuration stores a secret reference, never a plaintext token.
 - A source can be tested without publishing data.
 
@@ -62,7 +62,7 @@ Initial coverage:
 
 ### Review and operations
 
-- Review actions: approve, edit and approve, reject, and mark blocked/manual.
+- Review actions: inspect evidence, approve, reject, and mark blocked/manual.
 - Run history shows source, trigger, status, counts, duration, and error summary.
 - A source failure does not stop other sources.
 - Re-running unchanged input is idempotent.
@@ -76,16 +76,12 @@ Initial coverage:
 
 ## Standard Job Template
 
-Each published job contains:
+The canonical Markdown/Excel template has the same 18 ordered fields:
 
-- Identity: company category, company, business unit, title, normalized role.
-- Recruitment: job type, batch, graduation window, start date, deadline, status.
-- Location: city, region, remote policy.
-- Requirements: education, major, language, experience, technology stack,
-  certificates/qualifications, JD, and requirement text.
-- Application: application URL/method, login/captcha flags, resume format.
-- Evidence: source URL, source trust, capture time, content hash, confidence,
-  review status, and update time.
+`companyCategory`, `companyName`, `title`, `jobFamily`, `jobType`, `city`,
+`deadline`, `techStack`, `certificateRequirements`, `jd`, `requirements`,
+`applyUrl`, `sourceUrl`, `sourceTrust`, `capturedAt`, `confidence`,
+`reviewStatus`, and `updatedAt`.
 
 ## Non-Goals
 

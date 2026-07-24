@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { ApiError } from "../../api/client";
 import type { Source, SourceInput } from "../../api/client";
+import { displayLabel } from "../../api/labels";
 
 type FormValue = Omit<SourceInput, "termsConfirmedAt"> & { termsConfirmedAt: string };
 
 const initial: FormValue = {
   name: "", type: "COMPANY", baseUrl: "", listUrl: "", adapterType: "HTML", mode: "HTML",
-  complianceStatus: "UNKNOWN", trustLevel: "P1", companyCategory: "", enabled: false,
+  complianceStatus: "UNKNOWN", trustLevel: "OFFICIAL", companyCategory: "", enabled: false,
   cron: "0 0 8 * * *", timezone: "Asia/Shanghai", minIntervalSeconds: 5, maxPages: 1, maxItems: 50,
   selectors: "{}", fieldMapping: "{}", termsUrl: "", termsConfirmedAt: "", robotsUrl: "", timeoutSeconds: 15,
   aiEnabled: false, aiProvider: "", aiModel: "", secretEnvRef: ""
@@ -21,7 +22,8 @@ export function SourceForm({ source, onCancel, onSave }: {
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const update = <K extends keyof FormValue>(key: K, next: FormValue[K]) => setValue((current) => ({ ...current, [key]: next }));
-  const canEnable = value.complianceStatus === "ALLOWED" && Boolean(value.termsConfirmedAt);
+  const canEnable = value.complianceStatus === "ALLOWED"
+    && isHttpUrl(value.termsUrl ?? "") && Boolean(value.termsConfirmedAt);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const input = toInput(value);
@@ -36,13 +38,12 @@ export function SourceForm({ source, onCancel, onSave }: {
       <Field label="来源名称" value={value.name} onChange={(next) => update("name", next)} required />
       <Select label="来源类型" value={value.type} values={["COMPANY", "CAMPUS", "PLATFORM", "GOVERNMENT"]} onChange={(next) => update("type", next)} />
       <Field label="官网 URL" type="url" value={value.baseUrl} onChange={(next) => update("baseUrl", next)} required />
-      <Field label="列表 URL" type="url" value={value.listUrl} onChange={(next) => update("listUrl", next)} required />
-      <Select label="采集模式" value={value.mode} values={["JSON", "HTML", "MANUAL"]} onChange={(next) => update("mode", next as FormValue["mode"])} />
-      <Field label="适配器类型" value={value.adapterType} onChange={(next) => update("adapterType", next)} required />
-      <Field label="企业分类" value={value.companyCategory} onChange={(next) => update("companyCategory", next)} required />
-      <Select label="信任级别" value={value.trustLevel} values={["P1", "P2", "P3", "P4"]} onChange={(next) => update("trustLevel", next)} />
-      <Field label="Cron" value={value.cron} onChange={(next) => update("cron", next)} />
-      <Field label="时区" value={value.timezone} onChange={(next) => update("timezone", next)} />
+      <Field label="列表 URL" value={value.listUrl} onChange={(next) => update("listUrl", next)} required />
+      <Select label="采集模式" value={value.mode} values={["JSON", "HTML", "MANUAL"]} onChange={(next) => {
+        update("mode", next as FormValue["mode"]); update("adapterType", next);
+      }} />
+      <Select label="企业分类" value={value.companyCategory} values={["", "SHANDONG_SOE", "CENTRAL_SOE", "INTERNET_BIG_TECH", "SME", "FOREIGN", "OTHER"]} onChange={(next) => update("companyCategory", next)} />
+      <Select label="信任级别" value={value.trustLevel} values={["OFFICIAL", "TRUSTED_INDEX", "LEAD_ONLY", "MANUAL"]} onChange={(next) => update("trustLevel", next)} />
       <Field label="最小间隔（秒）" type="number" value={String(value.minIntervalSeconds)} onChange={(next) => update("minIntervalSeconds", Number(next))} />
       <Field label="最大页面数" type="number" value={String(value.maxPages)} onChange={(next) => update("maxPages", Number(next))} />
       <Field label="最大条目数" type="number" value={String(value.maxItems)} onChange={(next) => update("maxItems", Number(next))} />
@@ -56,11 +57,12 @@ export function SourceForm({ source, onCancel, onSave }: {
     </div>
     {value.mode !== "MANUAL" ? <><JsonField label="Selectors" value={value.selectors ?? "{}"} onChange={(next) => update("selectors", next)} />
       <JsonField label="字段映射" value={value.fieldMapping ?? "{}"} onChange={(next) => update("fieldMapping", next)} /></> : null}
-    <div className="form-grid"><label className="check-label"><input aria-label="启用 AI" type="checkbox" checked={value.aiEnabled} onChange={(event) => update("aiEnabled", event.target.checked)} />启用 AI 分类/摘要</label>
+    <label className="check-label"><input aria-label="记录 AI 配置" type="checkbox" checked={value.aiEnabled} onChange={(event) => update("aiEnabled", event.target.checked)} />记录 AI 配置（当前不执行）</label>
+    {value.aiEnabled ? <div className="form-grid">
       <Field label="AI Provider" value={value.aiProvider ?? ""} onChange={(next) => update("aiProvider", next)} />
       <Field label="AI Model" value={value.aiModel ?? ""} onChange={(next) => update("aiModel", next)} />
       <Field label="密钥环境变量引用" value={value.secretEnvRef ?? ""} onChange={(next) => update("secretEnvRef", next)} />
-    </div><div className="form-actions"><button disabled={saving} type="submit">{saving ? "保存中" : "保存来源"}</button><button className="secondary-button" disabled={saving} type="button" onClick={onCancel}>取消</button></div>
+    </div> : null}<div className="form-actions"><button disabled={saving} type="submit">{saving ? "保存中" : "保存来源"}</button><button className="secondary-button" disabled={saving} type="button" onClick={onCancel}>取消</button></div>
     {error ? <p className="form-error" role="alert">{error}</p> : null}</form>
   </section>;
 }
@@ -77,8 +79,8 @@ function toInput(value: FormValue): SourceInput {
 }
 
 function validate(value: SourceInput, canEnable: boolean): string | undefined {
-  if (!value.name || !isHttpUrl(value.baseUrl) || !isHttpUrl(value.listUrl)) return "请填写来源名称、官网 URL 和列表 URL。";
-  if (value.enabled && !canEnable) return "只有已确认条款的 ALLOWED 来源可以启用。";
+  if (!value.name || !value.companyCategory || !isHttpUrl(value.baseUrl) || !isHttpUrl(value.listUrl)) return "请填写来源名称、官网 URL、列表 URL，并选择企业分类。";
+  if (value.enabled && !canEnable) return "只有已记录条款 URL 和确认时间的 ALLOWED 来源可以启用。";
   if (value.mode !== "MANUAL" && (!isJsonObject(value.selectors) || !isJsonObject(value.fieldMapping))) return "Selectors 和字段映射必须是 JSON 对象。";
   if (value.secretEnvRef && !/^[A-Z][A-Z0-9_]*$/u.test(value.secretEnvRef)) return "密钥环境变量引用必须是大写环境变量名，不能填写明文 token。";
   return undefined;
@@ -88,7 +90,7 @@ function Field({ label, value, onChange, type = "text", required = false }: { la
   return <label>{label}<input aria-label={label} required={required} type={type} value={value} onChange={(event) => onChange(event.target.value)} /></label>;
 }
 function Select({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (value: string) => void }) {
-  return <label>{label}<select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item}>{item}</option>)}</select></label>;
+  return <label>{label}<select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item || "empty"} value={item}>{item ? displayLabel(item) : "请选择"}</option>)}</select></label>;
 }
 function JsonField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label>{label}<textarea aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} rows={3} /></label>; }
 function isHttpUrl(value: string): boolean { try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; } }

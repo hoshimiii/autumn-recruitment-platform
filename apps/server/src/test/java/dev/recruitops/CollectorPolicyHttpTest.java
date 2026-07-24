@@ -21,13 +21,19 @@ class CollectorPolicyHttpTest extends CollectorTestSupport {
         "{\"itemsPath\":\"items\"}", "{}");
     long unconfirmed = insertSource("/jobs", "JSON", false, "ALLOWED", null, 5,
         "{\"itemsPath\":\"items\"}", "{}");
+    long untraceable = insertSource("/jobs", "JSON", false, "ALLOWED", CONFIRMED, 5,
+        "{\"itemsPath\":\"items\"}", "{}");
+    jdbc.update("UPDATE sources SET terms_url=NULL WHERE id=?", untraceable);
 
     CollectionRun automatic = workflow.runSource(disabled);
     CollectionRun test = workflow.testSource(unconfirmed);
+    CollectionRun missingTermsUrl = workflow.testSource(untraceable);
 
     assertEquals("BLOCKED", automatic.status());
     assertEquals("BLOCKED", test.status());
     assertTrue(test.errorSummary().contains("terms"));
+    assertEquals("BLOCKED", missingTermsUrl.status());
+    assertTrue(missingTermsUrl.errorSummary().contains("terms_url"));
     assertEquals(0, requests.get());
   }
 

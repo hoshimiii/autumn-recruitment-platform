@@ -13,8 +13,8 @@ tests/
 docs/        Product, technical, compliance, and test contracts
 ```
 
-The old Node API and TypeScript DB/domain packages stay only until their Java
-replacement passes integration acceptance.
+The obsolete Node API and TypeScript DB/domain packages were removed after the
+Java replacement passed integration and browser acceptance.
 
 ## Technology Decisions
 
@@ -77,7 +77,10 @@ configured source
 - Redirects to login, captcha, or unapproved origins are blocked.
 - Default per-origin interval is at least five seconds.
 - `401`, `403`, and `429` stop the source run without evasion.
-- Robots denial or unconfirmed terms state blocks automated collection.
+- Robots denial, a missing terms URL, or an unconfirmed terms state blocks collection.
+- DNS resolution is checked before and after the request; a changed address set fails
+  closed. JDK `HttpClient` does not expose the connected peer address, so a narrow
+  DNS rebinding TOCTOU window remains.
 - List page and item limits are configured and enforced before requests.
 - Every run receives its own status and error summary.
 
@@ -127,7 +130,8 @@ exposed.
 - Scheduler prevents overlapping daily runs in one process.
 - Each source is collected independently; one failure never aborts the batch.
 - Raw snapshots are bounded and retained only for configured traceability.
-- Source, run, candidate, review, publication, and export events are auditable.
+- Source configuration, run history, candidate evidence, review actions, snapshots,
+  and published records remain traceable.
 - Secrets are referenced by environment-variable name and never returned by APIs.
 
 ## Deployment Shape

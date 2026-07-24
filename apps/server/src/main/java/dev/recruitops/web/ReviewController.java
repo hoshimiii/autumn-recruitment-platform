@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import dev.recruitops.application.ReviewService;
 import dev.recruitops.domain.Job;
 import dev.recruitops.domain.ReviewItem;
+import dev.recruitops.domain.ReviewDetail;
 import dev.recruitops.domain.ReviewView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -15,6 +16,9 @@ public class ReviewController {
   private final ReviewService reviews;
   public ReviewController(ReviewService reviews) { this.reviews = reviews; }
   @GetMapping public java.util.Map<String, List<ReviewView>> list() { return java.util.Map.of("items", reviews.list()); }
+  @GetMapping("/{id}") public ReviewDetail detail(@PathVariable long id) {
+    return reviews.detail(id);
+  }
   @PostMapping("/{id}/approve") public Job approve(@PathVariable long id, @RequestBody(required=false) ApproveRequest request) {
     return reviews.approve(id, request == null ? null : request.normalizedPayload());
   }

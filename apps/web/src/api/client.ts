@@ -35,8 +35,10 @@ export type Job = {
   requiresLogin?: boolean;
   requiresCaptcha?: boolean;
   confidence?: number;
-  snapshots?: string[];
+  snapshots?: JobSnapshot[];
 };
+export type JobSnapshot = { id: EntityId; sourceId?: EntityId; sourceUrl: string; contentHash?: string;
+  parsedPayload?: Record<string, unknown>; capturedAt: string };
 
 export type JobFilters = {
   keyword: string; companyCategory: string; company: string; jobType: string; city: string;
@@ -60,6 +62,10 @@ export type Source = {
 
 export type SourceInput = Omit<Source, "id" | "etag" | "lastModified" | "lastRunAt" | "lastStatus" | "configVersion"> & { secretEnvRef?: string };
 export type ReviewItem = { id: EntityId; companyName: string; title: string; reason?: string; confidence?: number; status: string; sourceName?: string; createdAt?: string };
+export type ReviewDetail = { id: EntityId; sourceId?: EntityId; sourceName?: string; status: string;
+  candidatePayload: Record<string, unknown>; normalizedPayload: Record<string, unknown>; reason?: string;
+  confidence?: number; sourceUrl?: string; dedupeKey?: string; contentHash?: string;
+  duplicateJobId?: EntityId; createdAt?: string };
 export type Run = { id: EntityId; sourceName?: string; triggerType: string; status: string; startedAt?: string; finishedAt?: string; discoveredCount: number; reviewItemCount: number; errorCount: number; errorSummary?: string };
 export type ManualActionInput = { platform: string; companyName: string; jobTitle?: string; searchKeywords?: string[]; sourceUrl?: string; techStackKeywords?: string[]; certificateNotes?: string; requiredAction: string; requiresLogin?: boolean; requiresCaptcha?: boolean; applyMethod?: string; reminderAt?: string; priority?: number; status?: string; notes?: string };
 export type ManualItem = ManualActionInput & { id: EntityId; createdAt?: string };
@@ -98,6 +104,9 @@ export function deleteSource(id: EntityId): Promise<void> { return request<void>
 export function testSource(id: EntityId): Promise<Run> { return request<Run>(`/sources/${encodeURIComponent(String(id))}/test`, { method: "POST" }); }
 export function runSource(id: EntityId): Promise<Run> { return request<Run>(`/sources/${encodeURIComponent(String(id))}/runs`, { method: "POST" }); }
 export function listReviewItems(signal: AbortSignal): Promise<ReviewItem[]> { return request<ReviewItem[] | { items: ReviewItem[] }>("/review-items", { signal }).then(list); }
+export function getReviewItem(id: EntityId): Promise<ReviewDetail> {
+  return request<ReviewDetail>(`/review-items/${encodeURIComponent(String(id))}`);
+}
 export function reviewAction(id: EntityId, action: "approve" | "reject" | "block", body: Record<string, unknown> = {}): Promise<void> { return request<void>(`/review-items/${encodeURIComponent(String(id))}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
 export function listRuns(signal: AbortSignal): Promise<Run[]> { return request<Run[] | { items: Run[] }>("/runs", { signal }).then(list); }
 export function startDailyRun(): Promise<Run> { return request<Run>("/runs/daily", { method: "POST" }); }

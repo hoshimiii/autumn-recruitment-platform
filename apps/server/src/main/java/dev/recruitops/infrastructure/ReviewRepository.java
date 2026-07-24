@@ -1,5 +1,6 @@
 package dev.recruitops.infrastructure;
 
+import dev.recruitops.domain.ReviewDetail;
 import dev.recruitops.domain.ReviewItem;
 import dev.recruitops.domain.ReviewStatus;
 import dev.recruitops.domain.ReviewView;
@@ -21,10 +22,27 @@ public class ReviewRepository {
   public List<ReviewView> list() {
     return jdbc.query("""
         SELECT r.*, s.name AS source_name FROM review_items r
-        LEFT JOIN sources s ON s.id=r.source_id ORDER BY r.id DESC
+        LEFT JOIN sources s ON s.id=r.source_id
+        WHERE r.status='PENDING_REVIEW' ORDER BY r.id DESC
         """, (rs, row) -> view(rs));
   }
   public Optional<ReviewItem> find(long id) { return jdbc.query("SELECT * FROM review_items WHERE id=?", mapper, id).stream().findFirst(); }
+  public Optional<ReviewDetail> detail(long id) {
+    return jdbc.query("""
+        SELECT r.*, s.name AS source_name,
+        (SELECT id FROM jobs WHERE dedupe_key=r.dedupe_key AND status='PUBLISHED'
+          ORDER BY id LIMIT 1) AS duplicate_job_id
+        FROM review_items r LEFT JOIN sources s ON s.id=r.source_id WHERE r.id=?
+        """, (rs, row) -> {
+          var normalized = json.tree(rs.getString("normalized_payload"));
+          return new ReviewDetail(rs.getLong("id"), nullableLong(rs, "source_id"),
+              rs.getString("source_name"), ReviewStatus.valueOf(rs.getString("status")),
+              json.tree(rs.getString("candidate_payload")), normalized, rs.getString("review_notes"),
+              nullableDouble(rs, "confidence"), text(normalized, "sourceUrl"),
+              rs.getString("dedupe_key"), rs.getString("content_hash"),
+              nullableLong(rs, "duplicate_job_id"), rs.getString("created_at"));
+        }, id).stream().findFirst();
+  }
   public void publish(long id, long jobId, String payload) { jdbc.update("UPDATE review_items SET status='PUBLISHED',published_job_id=?,normalized_payload=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", jobId, payload, id); }
   public void transition(long id, ReviewStatus status, String notes) { jdbc.update("UPDATE review_items SET status=?,review_notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", status.name(), notes, id); }
   public void audit(long id, String action, String before, String after, String notes) { jdbc.update("INSERT INTO audit_logs (entity_type,entity_id,action,before_payload,after_payload,notes) VALUES ('REVIEW_ITEM',?,?,?,?,?)", id, action, before, after, notes); }

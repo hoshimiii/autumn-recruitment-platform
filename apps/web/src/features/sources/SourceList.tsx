@@ -1,4 +1,5 @@
 import type { Source } from "../../api/client";
+import { displayLabel } from "../../api/labels";
 
 export type SourceAction = "test" | "run" | "edit" | "delete";
 
@@ -12,8 +13,8 @@ export function SourceList({ sources, onAction, pending }: {
     {sources.length === 0 ? <p className="empty-state">暂无岗位来源。</p> : <ul className="source-list">{sources.map((source) => {
       const disabled = pending === String(source.id);
       return <li key={source.id}>
-        <div><strong>{source.name}</strong><span>{source.mode} · {source.trustLevel} · {source.lastStatus ?? source.lastRunAt ?? "尚未运行"}</span></div>
-        <div className="source-flags"><span className="status">{source.complianceStatus}</span><span className="status">{source.enabled ? "启用" : "停用"}</span><span className="status">v{source.configVersion}</span></div>
+        <div><strong>{source.name}</strong><span>{source.mode} · {displayLabel(source.trustLevel)} · {source.lastStatus ? displayLabel(source.lastStatus) : source.lastRunAt ?? "尚未运行"}</span></div>
+        <div className="source-flags"><span className="status">{displayLabel(source.complianceStatus)}</span><span className="status">{source.enabled ? "启用" : "停用"}</span><span className="status">v{source.configVersion}</span></div>
         <div className="source-actions">
           <ActionButton action="test" label="测试" source={source} disabled={disabled} onAction={onAction} />
           <ActionButton action="run" label="运行" source={source} disabled={disabled} onAction={onAction} />

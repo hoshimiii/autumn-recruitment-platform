@@ -6,9 +6,13 @@ The MVP uses local SQLite with migrations and backup-friendly files.
 
 Stores configured information sources.
 
-Key fields: `id`, `name`, `type`, `base_url`, `adapter_type`, `mode`, `compliance_status`, `trust_level`, `scope`, `enabled`, `crawl_frequency`, `last_run_at`, `last_status`, `notes`, `created_at`, `updated_at`.
+Key fields: `id`, `name`, `type`, `base_url`, `list_url`, `adapter_type`, `mode`,
+`compliance_status`, `trust_level`, `scope`, `enabled`, `cron`, `timezone`,
+`min_interval_seconds`, `max_pages`, `max_items`, `selectors_json`,
+`field_mapping_json`, `terms_url`, `terms_confirmed_at`, `robots_url`,
+`timeout_seconds`, `last_run_at`, `last_status`, `created_at`, `updated_at`.
 
-## `crawl_tasks`
+## `collection_runs`
 
 Stores collection task runs.
 
@@ -18,7 +22,10 @@ Key fields: `id`, `source_id`, `trigger_type`, `status`, `started_at`, `finished
 
 Stores candidate jobs or changes pending review.
 
-Key fields: `id`, `source_id`, `task_id`, `candidate_payload`, `normalized_payload`, `raw_snapshot_id`, `dedupe_key`, `confidence`, `status`, `review_notes`, `created_at`, `updated_at`.
+Key fields: `id`, `source_id`, `run_id`, `candidate_payload`,
+`normalized_payload`, `raw_snapshot_id`, `dedupe_key`, `content_hash`,
+`confidence`, `status`, `review_notes`, `published_job_id`, `created_at`,
+`updated_at`.
 
 ## `jobs`
 

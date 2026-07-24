@@ -22,7 +22,7 @@ Implementation follows TDD for production code. Documentation and root config bo
 - Review approval writes jobs and snapshots.
 - Changed content updates an existing job through review and logs the action.
 - Unchanged reruns and repeated approval are idempotent.
-- Manual item create, list, and update works.
+- Manual item create and list works.
 - SQLite persists after restart.
 - Job filters, sorting, and pagination return expected records.
 - Daily runs do not overlap in one process.
@@ -31,14 +31,12 @@ Implementation follows TDD for production code. Documentation and root config bo
 ## E2E Coverage
 
 - User triggers collection, reviews a job, approves it, and sees it in the table.
-- User rejects an invalid review item and it does not appear in jobs.
-- User creates a manual-only platform record and no automatic collection is triggered.
-- User disables a source and collection skips it.
-- User opens a job detail page and sees snapshots, tech stack, certificates, and application information.
-- User filters jobs, refreshes, and retains the same URL-backed result.
-- User configures and tests a source without publishing candidates.
-- User downloads Markdown and Excel for the current filters.
-- Embedded-base mount/unmount works without page overflow on desktop and mobile.
+- Mocked browser coverage checks job display, URL-backed filters, detail, exports,
+  separated operations routes, and layout overflow.
+- The real Java browser path creates a compliant source, collects one fixture,
+  reviews and approves it, filters the published job, opens detail, and downloads
+  Markdown and Excel.
+- Micro-frontend mount/unmount and source/manual forms are covered by frontend tests.
 
 ## Interface Coverage
 

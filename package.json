@@ -16,7 +16,8 @@
     "typecheck": "npm run typecheck -w @recruitment/web",
     "dev:server": ".\\mvnw.cmd -f apps/server/pom.xml spring-boot:run",
     "dev:web": "npm run dev -w apps/web",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "smoke:mcp": "node scripts/mcp-smoke.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

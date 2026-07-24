@@ -38,7 +38,7 @@
 - Use TDD for production behavior: add the smallest failing test, implement, then
   refactor only if the test stays green.
 - Keep stage work isolated on `codex/*` branches and named worktrees.
-- Do not remove the old Node backend until the Java replacement passes integration.
+- The old Node backend was removed after Java integration acceptance; do not restore it.
 - Preserve unrelated user changes and do not rewrite published history.
 
 ## Verification

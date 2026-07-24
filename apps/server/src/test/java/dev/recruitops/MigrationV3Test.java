@@ -13,22 +13,27 @@ class MigrationV3Test {
   @TempDir Path temporaryDirectory;
 
   @Test
-  void migratesCollectorConfigurationAndSafeSeedSources() {
+  void upgradesExistingV3DatabaseWithoutRewritingPublishedMigration() {
     SQLiteDataSource dataSource = new SQLiteDataSource();
     dataSource.setUrl("jdbc:sqlite:" + temporaryDirectory.resolve("collector-test.sqlite"));
-    Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+    Flyway.configure().dataSource(dataSource).locations("classpath:db/migration")
+        .target("3").load().migrate();
     JdbcTemplate jdbc = new JdbcTemplate(dataSource);
 
     assertEquals(5, jdbc.queryForObject("SELECT COUNT(*) FROM sources", Integer.class));
+    assertEquals(1, jdbc.queryForObject(
+        "SELECT COUNT(*) FROM sources WHERE name='Tencent Careers JSON'", Integer.class));
+
+    Flyway.configure().dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+
     assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM sources WHERE enabled <> 0", Integer.class));
     assertEquals(0, jdbc.queryForObject(
         "SELECT COUNT(*) FROM sources WHERE terms_confirmed_at IS NOT NULL", Integer.class));
     assertEquals(5, jdbc.queryForObject(
         "SELECT COUNT(*) FROM sources WHERE ai_enabled = 0", Integer.class));
     assertEquals(5, jdbc.queryForObject("""
-        SELECT COUNT(*) FROM sources WHERE name IN ('Tencent Careers JSON',
-        'State-owned Assets Supervision Recruitment Index', 'Shandong Rural Credit Recruitment',
-        'Alibaba Campus Recruitment', 'Huawei Campus Recruitment')
+        SELECT COUNT(*) FROM sources WHERE name IN ('腾讯校招官网', '国资委招聘信息',
+        '山东农信招聘', '阿里巴巴校园招聘', '华为校园招聘')
         """, Integer.class));
 
     jdbc.update("""

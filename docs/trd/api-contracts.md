@@ -33,6 +33,8 @@ and snapshot history.
 
 `PUT /api/v1/sources/{id}` updates a source and increments its config version.
 
+`DELETE /api/v1/sources/{id}` deletes a source configuration.
+
 `POST /api/v1/sources/{id}/test` validates policy and extraction without
 persisting candidates.
 
@@ -48,10 +50,10 @@ Secret fields accept only environment-variable references and are never returned
 
 ## Review Items
 
-`GET /api/v1/review-items` lists candidates and changed jobs.
+`GET /api/v1/review-items` lists only `PENDING_REVIEW` candidates and changed jobs.
 
 `GET /api/v1/review-items/{id}` returns candidate, normalized fields, source
-evidence, and duplicate hints.
+evidence, content hash, and a matching published job ID when dedupe finds one.
 
 `POST /api/v1/review-items/{id}/approve` accepts optional edited normalized fields.
 

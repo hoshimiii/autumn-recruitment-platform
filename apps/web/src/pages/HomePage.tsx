@@ -37,8 +37,9 @@ export function HomePage({ hrefFor, onNavigate }: Props) {
 
   const selected = detail?.id === selectedId ? detail : jobs.find((job) => job.id === selectedId);
   const summary = useMemo(() => [
-    ["岗位", jobs.length], ["开放", jobs.filter((job) => job.deadlineStatus === "开放").length],
-    ["今日更新", jobs.filter((job) => recent(job.updatedAt ?? job.capturedAt)).length], ["P1", jobs.filter((job) => job.sourceTrust === "P1").length]
+    ["岗位", jobs.length], ["开放", jobs.filter(open).length],
+    ["今日更新", jobs.filter((job) => recent(job.updatedAt ?? job.capturedAt)).length],
+    ["官方来源", jobs.filter((job) => job.sourceTrust === "OFFICIAL").length]
   ], [jobs]);
   const updateFilters = (next: JobFilterState) => { writeJobFilters(next); setFilters(next); };
 
@@ -60,3 +61,4 @@ export function HomePage({ hrefFor, onNavigate }: Props) {
 
 function recent(value?: string): boolean { return Boolean(value && Date.now() - new Date(value).getTime() < 24 * 60 * 60 * 1000); }
 function stale(value?: string): boolean { return Boolean(value && Date.now() - new Date(value).getTime() >= 24 * 60 * 60 * 1000); }
+function open(job: Job): boolean { return !job.deadline || job.deadline >= new Date().toISOString().slice(0, 10); }

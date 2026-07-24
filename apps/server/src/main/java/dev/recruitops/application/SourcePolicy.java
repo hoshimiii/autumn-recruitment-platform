@@ -13,6 +13,7 @@ public class SourcePolicy {
       throw CollectionException.blocked("compliance_not_allowed");
     }
     if (blank(source.termsConfirmedAt())) throw CollectionException.blocked("terms_unconfirmed");
+    if (blank(source.termsUrl())) throw CollectionException.blocked("terms_url_missing");
     URI base = valid("base_url", source.baseUrl());
     URI list = valid("list_url", source.listUrl().replace("{page}", "1"));
     if (!sameOrigin(base, list)) throw CollectionException.blocked("list_url_origin_not_allowed");
@@ -21,7 +22,7 @@ public class SourcePolicy {
         && !sameOrigin(base, valid("robots_url", source.robotsUrl()))) {
       throw CollectionException.blocked("robots_url_origin_not_allowed");
     }
-    if (!blank(source.termsUrl())) valid("terms_url", source.termsUrl());
+    valid("terms_url", source.termsUrl());
   }
 
   public static URI valid(String field, String value) {

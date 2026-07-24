@@ -1,5 +1,7 @@
 import { createServer } from "node:http";
 
+const port = Number(process.env.FIXTURE_PORT ?? 4300);
+const origin = `http://127.0.0.1:${port}`;
 const job = {
   company: "齐鲁数科",
   title: "Java 开发工程师",
@@ -11,8 +13,8 @@ const job = {
   deadline: "2026-11-30",
   jd: "参与招聘信息平台后端研发与数据治理。",
   requirements: "熟悉 Java 与 Spring Boot，具备数据库基础。",
-  url: "http://127.0.0.1:4300/jobs/java-platform",
-  applyUrl: "http://127.0.0.1:4300/apply/java-platform"
+  url: `${origin}/jobs/java-platform`,
+  applyUrl: `${origin}/apply/java-platform`
 };
 
 createServer((request, response) => {
@@ -27,4 +29,4 @@ createServer((request, response) => {
     return;
   }
   response.writeHead(404).end();
-}).listen(4300, "127.0.0.1");
+}).listen(port, "127.0.0.1");

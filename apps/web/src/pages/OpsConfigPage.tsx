@@ -26,6 +26,7 @@ export function OpsConfigPage() {
   };
   const action = async (source: Source, kind: SourceAction) => {
     if (kind === "edit") { setEditing(source); setCreating(false); setError(undefined); return; }
+    if (kind === "delete" && !window.confirm(`确认删除来源“${source.name}”？`)) return;
     setPending(String(source.id)); setError(undefined);
     try {
       if (kind === "delete") {
@@ -43,7 +44,8 @@ export function OpsConfigPage() {
   return <main className="workbench"><PageHeader title="来源配置" description="只配置已确认的公开信息源和可选分类 Agent。"
     actions={<button type="button" onClick={() => { setCreating(true); setEditing(undefined); setError(undefined); }}>新增来源</button>} />
     {error ? <section className="panel state-panel" role="alert">{error}</section> : null}
-    <div className="ops-grid single-column">{creating || editing ? <SourceForm source={editing} onCancel={closeForm} onSave={save} /> : null}
+    <div className="ops-grid single-column">{creating || editing ? <SourceForm
+        key={editing ? String(editing.id) : "new"} source={editing} onCancel={closeForm} onSave={save} /> : null}
       <SourceList sources={sources} pending={pending} onAction={action} /></div>
   </main>;
 }

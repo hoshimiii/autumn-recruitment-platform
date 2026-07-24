@@ -50,11 +50,12 @@ abstract class CollectorTestSupport {
     jdbc.update("""
         INSERT INTO sources (name,type,base_url,list_url,adapter_type,mode,compliance_status,trust_level,
         scope,enabled,min_interval_seconds,max_pages,max_items,selectors_json,field_mapping_json,
-        terms_confirmed_at,robots_url,timeout_seconds)
+        terms_url,terms_confirmed_at,robots_url,timeout_seconds)
         VALUES (?,'COMPANY',?,?,?, ?,?,'OFFICIAL','INTERNET_BIG_TECH',?,0,1,?,?,?,?,
-        ?,3)
+        ?,?,3)
         """, "Fixture " + sourceSequence.incrementAndGet(), origin, listUrl, mode, mode, compliance,
-        enabled, maxItems, selectors, mapping, termsConfirmedAt, origin + "/robots.txt");
+        enabled, maxItems, selectors, mapping, origin + "/terms", termsConfirmedAt,
+        origin + "/robots.txt");
     return jdbc.queryForObject("SELECT last_insert_rowid()", Long.class);
   }
 

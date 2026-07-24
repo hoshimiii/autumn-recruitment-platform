@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import dev.recruitops.application.CollectionException;
 import java.net.URI;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class AddressPolicyTest {
@@ -19,5 +20,13 @@ class AddressPolicyTest {
   @Test
   void explicitTestOverrideAllowsPrivateAddresses() {
     assertDoesNotThrow(() -> new AddressPolicy(true).requirePublic(URI.create("http://127.0.0.1/jobs")));
+  }
+
+  @Test
+  void addressChangeFailsClosed() {
+    assertThrows(CollectionException.class,
+        () -> AddressPolicy.requireSame(Set.of("203.0.113.1"), Set.of("203.0.113.2")));
+    assertDoesNotThrow(
+        () -> AddressPolicy.requireSame(Set.of("203.0.113.1"), Set.of("203.0.113.1")));
   }
 }

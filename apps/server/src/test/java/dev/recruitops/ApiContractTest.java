@@ -125,6 +125,19 @@ class ApiContractTest {
   }
 
   @Test
+  void enabledSourceRequiresTraceableTermsEvidence() throws Exception {
+    String body = """
+        {"name":"Untraceable","type":"COMPANY","baseUrl":"https://careers.example.com",
+        "listUrl":"https://careers.example.com/jobs","adapterType":"HTML","mode":"HTML",
+        "complianceStatus":"ALLOWED","trustLevel":"OFFICIAL","companyCategory":"INTERNET",
+        "enabled":true,"termsConfirmedAt":"2026-07-25T00:00:00Z"}
+        """;
+    mvc.perform(post("/api/v1/sources").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("error.code").value("validation_error"));
+  }
+
+  @Test
   void sqliteRejectsInvalidForeignKeys() {
     assertThrows(DataAccessException.class, () -> jdbc.update(
         "INSERT INTO collection_runs (source_id, trigger_type, status) VALUES (99999, 'MANUAL', 'SUCCESS')"));
@@ -174,6 +187,10 @@ class ApiContractTest {
     mvc.perform(get("/api/v1/jobs/{id}", acmeId)).andExpect(status().isOk())
         .andExpect(jsonPath("companyName").value("Acme"))
         .andExpect(jsonPath("capturedAt").value("2026-07-25T00:00:00Z"))
+        .andExpect(jsonPath("snapshots", hasSize(1)))
+        .andExpect(jsonPath("snapshots[0].contentHash").value("test-hash"))
+        .andExpect(jsonPath("snapshots[0].sourceUrl")
+            .value("https://careers.example.com/jobs"))
         .andExpect(jsonPath("updatedAt").exists())
         .andExpect(jsonPath("requirements").value("Java"));
     mvc.perform(get("/api/v1/jobs/99999")).andExpect(status().isNotFound())
@@ -190,6 +207,8 @@ class ApiContractTest {
     assertEquals(1, count("jobs"));
     assertEquals(1, count("job_snapshots"));
     assertEquals(1, count("audit_logs"));
+    mvc.perform(get("/api/v1/review-items"))
+        .andExpect(status().isOk()).andExpect(jsonPath("items", hasSize(0)));
   }
 
   @Test
@@ -208,6 +227,15 @@ class ApiContractTest {
         .andExpect(jsonPath("items[0].status").value("PENDING_REVIEW"))
         .andExpect(jsonPath("items[0].createdAt").exists())
         .andExpect(jsonPath("items[0].normalizedPayload.companyName").value("Acme"));
+    mvc.perform(get("/api/v1/review-items/{id}", reviewId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("candidatePayload.companyName").value("Acme"))
+        .andExpect(jsonPath("normalizedPayload.sourceUrl")
+            .value("https://careers.example.com/jobs/java"))
+        .andExpect(jsonPath("sourceName").value("Official careers"))
+        .andExpect(jsonPath("dedupeKey").value("acme-java"));
+    mvc.perform(get("/api/v1/review-items/99999"))
+        .andExpect(status().isNotFound());
   }
 
   @Test

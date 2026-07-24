@@ -1,8 +1,8 @@
 package dev.recruitops.web;
 
 import dev.recruitops.application.JobService;
-import dev.recruitops.domain.Job;
 import dev.recruitops.infrastructure.JobRepository;
+import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,5 +20,7 @@ public class JobsController {
       @RequestParam(defaultValue="1") int page, @RequestParam(defaultValue="20") int pageSize) {
     return jobs.list(JobFilters.of(keyword, companyCategory, company, jobType, city, techStack, certificate, deadlineFrom, deadlineTo, sourceTrust, changedSince, page, pageSize));
   }
-  @GetMapping("/{id}") public Job detail(@PathVariable long id) { return jobs.detail(id); }
+  @GetMapping("/{id}") public Map<String, Object> detail(@PathVariable long id) {
+    return jobs.detail(id);
+  }
 }

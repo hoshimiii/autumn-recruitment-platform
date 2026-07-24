@@ -18,4 +18,6 @@ The user disables a source. Collection skips it and records the skip reason with
 
 ## Job Detail Inspection
 
-The user opens a job detail page and sees JD, requirements, tech stack, certificate and qualification requirements, education, major, language, salary if available, source snapshots, attachments, application method, login flag, captcha flag, and application timeline.
+The user opens a job detail page and sees JD, requirements, tech stack,
+certificate requirements, source snapshots, application method, login flag,
+and captcha flag.

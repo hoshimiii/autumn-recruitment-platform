@@ -74,6 +74,13 @@ public class SourceService {
           throw new IllegalArgumentException("termsConfirmedAt must be an ISO-8601 instant");
         }
       }
+      if (Boolean.TRUE.equals(enabled)) {
+        if (!"ALLOWED".equalsIgnoreCase(complianceStatus)
+            || blank(termsUrl) || blank(termsConfirmedAt)) {
+          throw new IllegalArgumentException(
+              "enabled sources require ALLOWED compliance, termsUrl, and termsConfirmedAt");
+        }
+      }
       int interval = value(minIntervalSeconds, 5);
       int pages = value(maxPages, 1);
       int items = value(maxItems, 50);

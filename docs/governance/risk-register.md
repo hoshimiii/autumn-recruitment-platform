@@ -8,15 +8,17 @@ Mitigation: Keep adapters small and test-driven, preserve raw snapshots, and rou
 
 ## Attachment-Only Jobs
 
-Risk: Some sources hide roles in Excel, Word, or PDF attachments.
+Risk: Some sources publish roles only in Excel, Word, or PDF attachments.
 
-Mitigation: Store attachment paths, parse official attachments, and send low-confidence extracted records to review.
+Mitigation: Keep those sources manual-only in this delivery. Add a bounded,
+format-specific adapter only after policy and fixture review.
 
 ## LLM Extraction Quality
 
 Risk: LLM extraction can hallucinate or over-normalize fields.
 
-Mitigation: Use LLM extraction only as assisted parsing and require review before approval.
+Mitigation: AI execution is out of scope in this delivery; only future
+configuration metadata is stored.
 
 ## Third-Party Staleness
 

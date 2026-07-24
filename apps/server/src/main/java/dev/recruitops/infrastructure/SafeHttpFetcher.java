@@ -11,6 +11,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -43,9 +44,15 @@ public class SafeHttpFetcher {
     int redirects = 0;
     while (true) {
       requireRequestUri(base, current);
-      addresses.requirePublic(current);
+      Set<String> approvedAddresses = addresses.requirePublic(current);
       pacer.await(source, current, robotsDelayMillis);
       HttpResponse<InputStream> response = send(source, current, conditional && redirects == 0);
+      try {
+        addresses.requireStable(current, approvedAddresses);
+      } catch (CollectionException error) {
+        close(response.body());
+        throw error;
+      }
       int status = response.statusCode();
       if (isRedirect(status)) {
         close(response.body());

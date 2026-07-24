@@ -31,22 +31,36 @@ test("ops routes stay separate and keep a compact desktop layout", async ({ page
   const metrics = await page.locator(".job-table-panel .table-wrap").evaluate((element) => ({ client: element.clientWidth, scroll: element.scrollWidth, body: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 1);
   expect(metrics.body).toBeLessThanOrEqual(metrics.viewport + 1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobile = await page.locator(".app-shell").evaluate((element) => {
+    const nav = [...element.querySelectorAll(".sidebar a")];
+    return {
+      body: document.documentElement.scrollWidth,
+      viewport: window.innerWidth,
+      navHeights: [...new Set(nav.map((item) => item.getBoundingClientRect().height))],
+      clippedNav: nav.some((item) => item.scrollWidth > item.clientWidth + 1)
+    };
+  });
+  expect(mobile.body).toBeLessThanOrEqual(mobile.viewport);
+  expect(mobile.navHeights).toHaveLength(1);
+  expect(mobile.clippedNav).toBeFalsy();
 });
 
 test("real source collection closes the review, display, and export loop", async ({ page, request }) => {
-  const api = "http://127.0.0.1:8080/api/v1";
+  const api = "http://127.0.0.1:18080/api/v1";
   const sourceResponse = await request.post(`${api}/sources`, {
     data: {
       name: "齐鲁数科校招",
       type: "COMPANY",
-      baseUrl: "http://127.0.0.1:4300",
-      listUrl: "http://127.0.0.1:4300/jobs",
+      baseUrl: "http://127.0.0.1:14300",
+      listUrl: "http://127.0.0.1:14300/jobs",
       adapterType: "JSON",
       mode: "JSON",
       complianceStatus: "ALLOWED",
       trustLevel: "OFFICIAL",
       companyCategory: "SHANDONG_SOE",
       enabled: true,
+      termsUrl: "http://127.0.0.1:14300/terms",
       termsConfirmedAt: "2026-07-25T00:00:00Z",
       minIntervalSeconds: 0,
       maxPages: 1,

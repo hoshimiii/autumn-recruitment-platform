@@ -1,6 +1,7 @@
 package dev.recruitops.infrastructure;
 
 import dev.recruitops.domain.Job;
+import dev.recruitops.domain.JobSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +37,15 @@ public class JobRepository {
     return new Page(jdbc.query(select() + where + " ORDER BY j.updated_at DESC, j.id DESC LIMIT ? OFFSET ?", mapper, paged.toArray()), page, size, total);
   }
   public Optional<Job> find(long id) { return jdbc.query(select() + " WHERE j.id=? AND j.status='PUBLISHED'", mapper, id).stream().findFirst(); }
+  public List<JobSnapshot> snapshots(long jobId) {
+    return jdbc.query("""
+        SELECT id,source_id,source_url,content_hash,parsed_payload,captured_at
+        FROM job_snapshots WHERE job_id=? ORDER BY captured_at DESC,id DESC
+        """, (rs, row) -> new JobSnapshot(rs.getLong("id"), nullableLong(rs, "source_id"),
+          rs.getString("source_url"), rs.getString("content_hash"),
+          json.tree(rs.getString("parsed_payload") == null ? "{}" : rs.getString("parsed_payload")),
+          rs.getString("captured_at")), jobId);
+  }
   public SavedJob upsert(JobDraft draft, long sourceId) {
     Optional<Long> existing = jdbc.queryForList(
         "SELECT id FROM jobs WHERE dedupe_key=? ORDER BY id LIMIT 1", Long.class, draft.dedupeKey())
@@ -83,6 +93,9 @@ public class JobRepository {
   }
   private static Double nullableDouble(java.sql.ResultSet rs, String column) throws java.sql.SQLException {
     double value = rs.getDouble(column); return rs.wasNull() ? null : value;
+  }
+  private static Long nullableLong(java.sql.ResultSet rs, String column) throws java.sql.SQLException {
+    long value = rs.getLong(column); return rs.wasNull() ? null : value;
   }
   public record JobFilter(String keyword, String companyCategory, String company, String jobType, String city,
       String techStack, String certificate, String deadlineFrom, String deadlineTo, String sourceTrust,

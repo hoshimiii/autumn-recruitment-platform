@@ -2,31 +2,28 @@
 
 ## Adapter Types
 
-- `GovNoticeAdapter`: government and SASAC HTML list/detail pages.
-- `AttachmentExtractor`: Excel, Word, and PDF job tables.
-- `OfficialCareerSiteAdapter`: official company career pages.
-- `PublicATSAdapter`: Greenhouse and Lever first, Workday as configured support.
-- `AggregatorIndexAdapter`: trusted index pages such as Nowcoder or 24365 for discovery.
-- `SourceDirectoryAdapter`: SOE directories and company whitelist maintenance.
-- `ManualImportAdapter`: user-supplied links, files, emails, or article pages.
-- `ThirdPartyLeadAdapter`: lower-trust aggregators that only produce leads requiring official verification.
+- `JSON`: reads a configured public JSON list and maps fields by JSON path.
+- `HTML`: reads a configured public HTML page and extracts items with CSS selectors.
+- `MANUAL`: records the source but performs no automated request.
 
-## Adapter Contract
+## Contract
 
-Adapters receive source configuration and task context. They return normalized candidate records plus metadata, raw snapshot references, attachment paths, confidence, source URL, content hash, and parser warnings.
+Adapters receive one validated source and fetched response. They return bounded
+candidate payloads with normalized fields, source URL, content hash, and
+confidence. They do not perform network requests or write directly to jobs.
 
-Adapters do not write directly to `jobs`. They create candidates for review or high-confidence direct processing through domain services.
+The collector owns policy, robots, pacing, pagination, response-size limits,
+deduplication, review creation, and run history.
 
-## Discovery And Parsing Rules
+## Rules
 
-- Official public pages and public ATS APIs may be collected automatically when source policy allows it.
-- Public attachments linked from official notices may be downloaded and parsed.
-- Trusted public index pages may be used only for discovery and official-link backtracking.
-- LLM extraction is an assisted parser for long notices or non-standard pages and sends results to review.
+- Automatic adapters run only for enabled `ALLOWED` sources with terms evidence.
+- JSON and HTML configuration must be JSON objects.
+- `{page}` is the only pagination placeholder.
 - Third-party leads require official verification before approval.
+- Attachments and AI extraction are manual-only in this delivery.
 
-## Dedupe And Scoring Inputs
+## Dedupe Inputs
 
-Deduplication uses canonical source URL and content hash, business key of normalized company, title, city, job type, batch, and deadline, and a JD similarity hint used only to propose merges.
-
-Scoring uses source trust, recency, deadline urgency, role match, city match, tech stack match, certificate fit, company category, confidence penalty, and staleness penalty.
+Exact content uses `source_id`, business dedupe key, and content hash. Approval
+uses the business key to update an existing published job when content changes.

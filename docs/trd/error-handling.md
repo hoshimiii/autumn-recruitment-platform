@@ -6,10 +6,10 @@ The source policy returns explicit block reasons:
 
 - `source_disabled`
 - `manual_only`
-- `login_required`
-- `captcha_required`
-- `forbidden`
-- `unknown`
+- `compliance_not_allowed`
+- `terms_unconfirmed`
+- `terms_url_missing`
+- URL, origin, robots, address, login/captcha, and HTTP status reasons
 
 Blocked sources are skipped and recorded in task output. They do not invoke adapters. `source.compliance_status = unknown` is a blocked source state, not a review queue state.
 
@@ -19,12 +19,13 @@ Adapter failures are captured per source with error summary and error count. A f
 
 ## Parsing Confidence
 
-Low-confidence attachment parsing, unknown pages from known compliant sources, third-party aggregators, WeChat or article reposts, and LLM-extracted records enter review before approval.
+Every new or changed candidate from a compliant source enters review.
 
 ## API Errors
 
-Validation errors include field-level details. Policy errors include source policy reason. Unimplemented mutation endpoints can return typed unsupported-operation responses until domain services are available.
+Validation errors and policy failures use the common typed error envelope.
 
 ## Data Integrity
 
-Raw snapshots and attachments are preserved when parsing succeeds or produces reviewable partial data. Review actions and state transitions create audit logs.
+Candidate payloads and approved job snapshots are preserved. Review actions and
+state transitions create audit logs.

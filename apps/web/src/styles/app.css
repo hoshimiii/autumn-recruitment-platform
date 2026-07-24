@@ -1,6 +1,6 @@
 @import "./table.css";
 @import "./controls.css";
-
+body.recruitment-standalone { margin: 0; min-width: 320px; min-height: 100vh; }
 @scope (.recruitment-app) {
 :scope {
   color-scheme: light;
@@ -24,7 +24,6 @@
   --warning: #9a5b00;
   --danger: #b42318;
 }
-
 * { box-sizing: border-box; }
 :scope { min-width: 320px; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
@@ -51,7 +50,7 @@ button:hover, .button-link:hover { background: #2a303a; }
 .secondary-button:hover { background: var(--surface-soft); }
 .icon-button { min-width: 34px; padding: 7px; }
 
-.app-shell {
+:scope.app-shell {
   background: var(--canvas);
   display: grid;
   grid-template-columns: 176px minmax(0, 1fr);
@@ -62,7 +61,11 @@ button:hover, .button-link:hover { background: #2a303a; }
   background: #11161d;
   border-right: 1px solid #252b34;
   color: #d9dee7;
+  height: 100vh;
+  overflow-y: auto;
   padding: 18px 12px;
+  position: sticky;
+  top: 0;
 }
 
 .brand {
@@ -219,8 +222,22 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
   color: #465264;
   font-size: 12px;
   line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 .requirements-text { white-space: pre-wrap; }
+.evidence-panel { display: grid; gap: 12px; }
+.evidence-panel pre {
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: 11px/1.5 Consolas, monospace;
+  margin: 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 9px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 .detail-panel ul { margin: 0; padding-left: 17px; }
 
@@ -237,6 +254,7 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
   color: #465264;
   font-size: 11px;
   line-height: 1.35;
+  overflow-wrap: anywhere;
   padding: 7px 8px;
 }
 .metadata-grid a {
@@ -263,12 +281,18 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
 
 @media (max-width: 960px) {
   .primary-grid, .secondary-grid, .ops-grid,
-  .detail-panel, .metadata-grid { grid-template-columns: 1fr; }
+  .detail-panel, .metadata-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 760px) {
-  .app-shell, .summary-band { grid-template-columns: 1fr; }
-  .sidebar { position: static; }
+  :scope.app-shell { grid-template-columns: 1fr; }
+  .summary-band { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sidebar { height: auto; padding: 10px 8px; position: static; }
+  .brand { margin-bottom: 8px; padding: 0 4px 8px; }
+  .sidebar nav { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sidebar a { font-size: 12px; line-height: 1.2; min-height: 30px; padding: 8px 2px;
+    text-align: center; white-space: nowrap; }
+  .sidebar .nav-start-group { margin-top: 0; }
   .topbar { align-items: stretch; flex-direction: column; }
   .workbench { padding: 12px; }
 }

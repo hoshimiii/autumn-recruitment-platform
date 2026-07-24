@@ -13,7 +13,7 @@
 
 - Every new or changed candidate creates a review item in the first delivery.
 - Approve creates or updates an official job and preserves raw source context.
-- Merge updates an existing job and logs the action.
+- Approving changed content updates the matching job and logs the action.
 - Reject prevents a candidate from appearing in the job table.
 - Each review action creates an audit log.
 - Repeating unchanged collection or approval does not create duplicate jobs.
@@ -23,8 +23,13 @@
 
 - The first screen is the workbench, not a landing page.
 - The job table displays type, company, title, job type, city, tech stack, certificate or qualification summary, deadline, status, source trust, and priority.
-- Filters include keyword, company type, company, job family, job type, city, tech stack, certificate or qualification, deadline status, source trust, application status, and review status.
-- The detail page shows JD, requirements, tech stack, certificate or qualification requirements, source snapshots, application method, and login or captcha requirements.
+- Filters include keyword, company type, company, job type, city, tech stack,
+  certificate or qualification, deadline range, and source trust.
+- The detail page shows JD, requirements, tech stack, certificate or qualification
+  requirements, original source, capture time, snapshot history, application
+  method, and login or captcha requirements.
+- The review page shows only pending items and can display candidate, normalized
+  fields, source URL, content hash, and duplicate-job evidence before action.
 - Filters are URL-backed and survive refresh.
 - Loading, empty, stale, and API failure states are visible and actionable.
 - The app mounts standalone and as a nested-base micro-frontend, and unmount removes its React root and listeners.
@@ -32,7 +37,6 @@
 ## Manual Records
 
 - A manual item stores platform, company, job title or keywords, source URL, required action, login flag, captcha flag, reminder, priority, status, and notes.
-- Manual-only records can be linked to a verified job.
 - Manual-only records do not start crawlers or source adapters.
 
 ## Local-First Operation
@@ -49,7 +53,9 @@
 ## Security And Compliance
 
 - Collection uses an identifiable user agent and never impersonates a browser or user.
+- Enabled collection requires an absolute terms URL and a recorded confirmation time.
 - URL validation blocks unsupported schemes, unapproved origins, and disallowed redirects.
+- DNS addresses must remain public and stable across the request boundary.
 - Robots denial, login/captcha detection, and `401`, `403`, or `429` stop the source run.
 - Plaintext AI/API tokens are never stored or returned; only environment-variable references are persisted.
-- Optional AI is disabled by default and cannot make network calls until explicitly configured and enabled.
+- AI settings are metadata-only in this delivery and never initiate network calls.

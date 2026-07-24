@@ -22,8 +22,7 @@ same data exported through REST, CLI, and MCP.
   terms or robots policy forbid collection.
 - Do not post content or use the user's accounts.
 - Do not search for, store, or use leaked/shared "free" tokens.
-- AI extraction is optional, user-configured, disabled by default, and limited
-  to classification, summarization, and tagging.
+- AI settings are metadata-only in this delivery and never initiate network calls.
 - Keep the existing `mount`/`unmount` micro-frontend contract and base-route
   behavior unless an integration test proves a compatible replacement.
 - Use SQLite for the local delivery. A multi-instance database is out of scope.
@@ -35,51 +34,58 @@ same data exported through REST, CLI, and MCP.
 ### Done
 
 - Existing TypeScript MVP audited.
-- Baseline tests pass after `npm ci`: 33 tests across API, web, DB, and domain.
 - Git remote `origin` configured for the requested GitHub repository.
 - AgentMemory initialized.
 - Public-source and Java/MCP options researched.
 - Baseline preserved on `codex/mvp-foundation`.
+- Java 17 backend, SQLite migrations, source policy, JSON/HTML adapters, review,
+  publication, exports, CLI, and MCP implemented.
+- React micro-frontend connected to Java REST with display and `/ops/*` routes.
+- Manual records and source create/edit/delete/test/run workflows implemented.
+- Obsolete Fastify API and TypeScript DB/domain packages removed.
+- Real local fixture E2E closes source -> review -> publish -> filter/detail ->
+  Markdown/XLSX.
+- Review evidence and published job snapshot history are available through REST
+  and the operations UI.
+- Published Flyway V3 remains unchanged; V4 localizes seed names incrementally.
+- Desktop 1440x900 and mobile 390x844 visual checks passed without page overflow,
+  control overlap, or text clipping.
+- Independent final review closed every P0/P1 finding and the E2E isolation P2.
 
 ### Active
 
-- Freeze the v2 product, API, data, compliance, and verification contracts.
-- Create stage worktrees for the Java backend and React micro-frontend.
+- None.
 
 ### Blocked
 
-- Remote repository currently returns no refs and the public GitHub page returns
-  404. Local work can continue; push verification remains pending.
-- `git fsck` reports one invalid Codex internal turn-diff ref. It is unrelated to
-  project refs and will not be deleted without explicit approval.
+- No project-delivery blocker. One invalid Codex internal turn-diff ref remains
+  outside project refs and was not deleted.
 
 ## Reasoning State
 
 ### Confirmed
 
-- The current frontend uses static seed data and does not call the API.
-- Existing sources, crawl tasks, and review endpoints are placeholders.
 - The current Java runtime is Java 17; Maven and Gradle are not globally installed.
 - Spring Boot 3.5 supports Java 17.
 - Official MCP Java SDK supports STDIO without an external web framework.
+- The requested GitHub repository is private and initially empty.
+- All seeded official source examples are disabled and require fresh policy and
+  selector review before use.
 
 ### Provisional
 
-- Use Spring Boot 3.5.x, JDBC, Flyway, Xerial SQLite, jsoup, Apache POI, and the
-  official MCP Java SDK.
-- Ship generic JSON and HTML source adapters first. Add a new adapter only when
-  a configured source cannot be expressed by those contracts.
+- Add a source-specific adapter only when JSON/HTML configuration cannot express
+  a verified public source.
 
 ### Ruled Out
 
 - Broad crawling, anti-bot evasion, login automation, automatic resume submission,
   mandatory cloud deployment, mandatory LLM extraction, and paid services.
-- Keeping the Node/Fastify API after the Java replacement passes acceptance.
+- Reintroducing the removed Node/Fastify backend.
 
 ### Unresolved
 
-- Final live-source selector validation for each seeded official source.
-- Whether the requested GitHub repository is empty, private, or unavailable.
+- Live selector and policy confirmation for seeded sources.
 
 ## Decisions and Contracts
 
@@ -87,34 +93,39 @@ same data exported through REST, CLI, and MCP.
   by Spring Boot 3.5.
 - REST, CLI, and MCP call the same application services.
 - Only reviewed `PUBLISHED` jobs appear on the public job page.
-- `BLOCKED`, `PARSE_FAILED`, and low-confidence candidates require review.
+- New and changed candidates enter `PENDING_REVIEW`; blocked or failed runs remain
+  visible in run history.
 - Every published job includes original URL, source trust, capture time, review
   status, and normalized job fields.
 - Scheduler runs are incremental, non-overlapping, and isolated by source.
 
 ## Verification and Remaining Risk
 
-- Baseline: `npm test` passed on 2026-07-25 after dependency installation.
-- Known baseline dependency audit: three high-severity findings in the old Node
-  dependency tree; reassess after the Node backend is removed.
+- Java: 42 tests passed on 2026-07-25.
+- Frontend: 18 tests, typecheck, and production build passed.
+- Playwright: 3 browser tests passed, including the real Java collection workflow.
+- CLI search and configured-source execution smoke passed.
+- MCP initialize, exact four-tool allowlist, and `search_jobs` call smoke passed.
+- `npm audit --audit-level=high`: zero vulnerabilities.
+- Maven package and the stable micro-frontend entry build passed.
+- Desktop 1440x900 and mobile 390x844 DOM/visual checks found no page overflow,
+  clipped controls, or uneven mobile navigation.
 - Live websites can change selectors or policies. Fixture-backed adapter tests are
   mandatory; live checks are operational evidence, not deterministic tests.
+- The scheduler lock is single-process because SQLite local delivery is
+  single-instance.
+- DNS is checked before and after each request, but JDK `HttpClient` does not
+  expose the connected peer address; a narrow DNS rebinding TOCTOU window remains.
 
 ## Remaining Work
 
-1. Commit contracts and create stage worktrees.
-2. Implement and test Java domain, persistence, REST, collection, review, export,
-   CLI, and MCP.
-3. Connect and refine the React micro-frontend against the Java API.
-4. Run integration, browser, visual, CLI, MCP, and export acceptance.
-5. Remove obsolete Node backend packages only after replacement verification.
+- None for the accepted local delivery.
 
 ## Exact Next Action
 
-Commit the v2 contracts, then create backend and frontend stage worktrees.
+None.
 
 ## Handoff and Completion Gate
 
-Before handoff, reconcile this file with Git status, active agents, test evidence,
-the exact startup commands, and remaining risks. Set `Exact Next Action` to
-`None` only after all acceptance criteria pass.
+Startup and verification commands are in `README.md`. The accepted local delivery
+is complete; future work begins with live source policy/selector confirmation.

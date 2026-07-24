@@ -9,7 +9,7 @@ const job = {
   jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"],
   certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放",
   status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML",
-  sourceUrl: "https://jobs.example/frontend", sourceTrust: "P1", capturedAt: "2026-07-25T08:00:00Z",
+  sourceUrl: "https://jobs.example/frontend", sourceTrust: "OFFICIAL", capturedAt: "2026-07-25T08:00:00Z",
   updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递",
   jd: "负责 React 前端开发", requirements: "熟悉 TypeScript\n具备工程化经验", applyUrl: "https://jobs.example/apply",
   applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92, snapshots: []
@@ -38,6 +38,15 @@ function mockApi(overrides: Record<string, Response> = {}, reviewItems: unknown[
     if (url.includes("/jobs")) return Promise.resolve(json({ items: [job], page: 1, pageSize: 50, total: 1 }));
     if (url.includes("/sources")) return Promise.resolve(json([]));
     if (url.includes("/review-items/") && init?.method === "POST") return Promise.resolve(new Response(null, { status: 204 }));
+    if (/\/review-items\/\d+$/u.test(url)) return Promise.resolve(json({
+      ...(reviewItems[0] as Record<string, unknown>),
+      sourceName: "云澜官网",
+      sourceUrl: "https://jobs.example/frontend",
+      candidatePayload: { title: "前端工程师", raw: "原始岗位描述" },
+      normalizedPayload: { companyName: "云澜科技", title: "前端工程师" },
+      dedupeKey: "yunlan-frontend",
+      contentHash: "hash-202"
+    }));
     if (url.includes("/review-items")) return Promise.resolve(json(reviewItems));
     if (url.includes("/runs")) return Promise.resolve(json([]));
     if (url.includes("/manual-items")) return Promise.resolve(json([]));
@@ -57,6 +66,10 @@ describe("API-driven micro frontend", () => {
     render(<App />);
 
     expect(await screen.findByRole("button", { name: "前端工程师" })).toBeInTheDocument();
+    expect(screen.getByLabelText("岗位概览")).toHaveTextContent("开放1");
+    expect(screen.getByLabelText("岗位概览")).toHaveTextContent("官方来源1");
+    expect(screen.getByRole("option", { name: "官网" })).toBeInTheDocument();
+    expect(screen.getAllByText("已发布")).not.toHaveLength(0);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/v1/jobs"), expect.objectContaining({ signal: expect.any(AbortSignal) })
     ));
@@ -107,7 +120,7 @@ describe("API-driven micro frontend", () => {
     fireEvent.change(screen.getByLabelText("官网 URL"), { target: { value: "https://jobs.example" } });
     fireEvent.change(screen.getByLabelText("列表 URL"), { target: { value: "https://jobs.example/jobs" } });
     fireEvent.change(screen.getByLabelText("企业分类"), { target: { value: "INTERNET_BIG_TECH" } });
-    fireEvent.click(screen.getByLabelText("启用 AI"));
+    fireEvent.click(screen.getByLabelText("记录 AI 配置"));
     fireEvent.change(screen.getByLabelText("密钥环境变量引用"), { target: { value: "plain-token" } });
     fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
 
@@ -169,7 +182,23 @@ describe("API-driven micro frontend", () => {
     expect(screen.getByLabelText("启用来源")).toBeDisabled();
     fireEvent.change(screen.getByLabelText("合规状态"), { target: { value: "ALLOWED" } });
     fireEvent.change(screen.getByLabelText("条款确认时间"), { target: { value: "2026-07-25T08:30" } });
+    expect(screen.getByLabelText("启用来源")).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("条款 URL"), { target: { value: "https://jobs.example/terms" } });
     expect(screen.getByLabelText("启用来源")).toBeEnabled();
+  });
+
+  it("resets source form values when switching the edited source", async () => {
+    const second = { ...source, id: 12, name: "第二来源", baseUrl: "https://second.example",
+      listUrl: "https://second.example/jobs", termsUrl: "https://second.example/terms" };
+    mockApi({ "/api/v1/sources": json([source, second]) });
+    window.history.replaceState({}, "", "/ops/config");
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "编辑来源 示例招聘官网" }));
+    expect(screen.getByLabelText("来源名称")).toHaveValue("示例招聘官网");
+    fireEvent.click(screen.getByRole("button", { name: "编辑来源 第二来源" }));
+    expect(screen.getByLabelText("来源名称")).toHaveValue("第二来源");
+    expect(screen.getByLabelText("官网 URL")).toHaveValue("https://second.example");
   });
 
   it("does not require parser JSON for manual sources", async () => {
@@ -184,6 +213,7 @@ describe("API-driven micro frontend", () => {
   });
 
   it("calls test, run, update and delete source endpoints", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     const fetchMock = mockApi({
       "/api/v1/sources": json([source]),
       "POST /api/v1/sources/11/test": json({ id: 1, status: "SUCCESS" }),
@@ -234,6 +264,13 @@ describe("API-driven micro frontend", () => {
     window.history.replaceState({}, "", "/ops/review");
     render(<App />);
 
+    fireEvent.click(await screen.findByRole("button", { name: "查看证据" }));
+    await waitFor(() => expect(screen.getAllByText((_text, element) =>
+      element?.tagName === "PRE" && Boolean(element.textContent?.includes("原始岗位描述"))
+    )).not.toHaveLength(0));
+    expect(screen.getByRole("link", { name: "原始链接" })).toHaveAttribute(
+      "href", "https://jobs.example/frontend"
+    );
     fireEvent.click(await screen.findByRole("button", { name: "人工跟进" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(

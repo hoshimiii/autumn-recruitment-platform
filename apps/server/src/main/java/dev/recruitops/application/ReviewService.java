@@ -3,6 +3,7 @@ package dev.recruitops.application;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.recruitops.domain.Job;
 import dev.recruitops.domain.ReviewItem;
+import dev.recruitops.domain.ReviewDetail;
 import dev.recruitops.domain.ReviewStatus;
 import dev.recruitops.domain.ReviewView;
 import dev.recruitops.infrastructure.JobRepository;
@@ -18,6 +19,10 @@ public class ReviewService {
   private final ReviewRepository reviews; private final JobRepository jobs; private final JsonValues json;
   public ReviewService(ReviewRepository reviews, JobRepository jobs, JsonValues json) { this.reviews = reviews; this.jobs = jobs; this.json = json; }
   public List<ReviewView> list() { return reviews.list(); }
+  public ReviewDetail detail(long id) {
+    return reviews.detail(id)
+        .orElseThrow(() -> new MissingResourceException("Review item not found"));
+  }
   @Transactional
   public Job approve(long id, JsonNode edited) {
     ReviewItem item = item(id);

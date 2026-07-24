@@ -18,12 +18,12 @@ npm ci
 npm run dev:web
 ```
 
-打开 `http://127.0.0.1:5173`。后端默认使用
-`apps/server/data/recruitment.sqlite`，所有示例来源默认停用。
+打开 `http://127.0.0.1:5173`。后端默认使用相对当前运行目录的
+`./data/recruitment.sqlite`，所有示例来源默认停用。
 
 ## 工作流
 
-1. 在“配置”页新增或编辑公开来源，确认条款、robots、解析字段和请求频率。
+1. 在“配置”页新增或编辑公开来源，记录条款 URL 与确认时间，并核对 robots、解析字段和请求频率。
 2. 使用“测试”验证提取结果；测试不会写入复核队列。
 3. 启用合规来源并运行单源或每日任务。
 4. 在“复核”页批准、拒绝或转人工处理。
@@ -41,7 +41,10 @@ npm test
 npm run typecheck
 npm run build
 npm run e2e
+npm run smoke:mcp
 ```
+
+Playwright 使用隔离端口 `15173/18080/14300`，不会复用或停止开发预览。
 
 ## CLI
 
@@ -102,7 +105,7 @@ app.mount(document.querySelector("#recruitment-root"));
 
 ## 配置
 
-常用环境变量见 [.env.example](.env.example)。AI 分类/摘要为可选功能，默认关闭；
-配置页只保存密钥环境变量名，不接收或返回明文密钥。
+常用环境变量见 [.env.example](.env.example)。当前版本只记录可选 AI 配置元数据，
+不执行 AI 网络调用；配置页只保存密钥环境变量名，不接收或返回明文密钥。
 
 设计、接口、安全边界和测试证据位于 `docs/`，当前执行状态位于 `CONTEXT.md`。
