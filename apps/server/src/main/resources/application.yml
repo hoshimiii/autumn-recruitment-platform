@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:./data/recruitment.sqlite
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+  flyway:
+    locations: classpath:db/migration
+server:
+  error:
+    whitelabel:
+      enabled: false

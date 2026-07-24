@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:file:recruitops-test?mode=memory&cache=shared
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+      minimum-idle: 1
+  flyway:
+    locations: classpath:db/migration
+  jpa:
+    hibernate:
+      ddl-auto: none

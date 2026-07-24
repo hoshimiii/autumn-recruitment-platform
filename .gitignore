@@ -9,6 +9,7 @@ coverage/
 output/
 test-results/
 playwright-report/
+/apps/server/target/
 *.log
 *.sqlite
 *.sqlite-shm
