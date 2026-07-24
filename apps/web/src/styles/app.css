@@ -118,7 +118,7 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
 .topbar p, .section-heading span, .detail-header span,
 .stack-list span, .source-list span { color: var(--ink-subtle); font-size: 12px; }
 
-.toolbar, .form-actions, .tag-row, .source-flags, .task-list li {
+.toolbar, .form-actions, .tag-row, .source-flags, .source-actions, .task-list li {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
