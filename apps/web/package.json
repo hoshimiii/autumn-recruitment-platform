@@ -3,18 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:deps": "npm run build -w @recruitment/domain",
-    "predev": "npm run build:deps",
     "dev": "vite --host 127.0.0.1",
-    "prebuild": "npm run build:deps",
     "build": "tsc -p tsconfig.json && vite build",
-    "pretypecheck": "npm run build:deps",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "pretest": "npm run build:deps",
     "test": "vitest run"
   },
   "dependencies": {
-    "@recruitment/domain": "*",
     "@vitejs/plugin-react": "^6.0.3",
     "lucide-react": "^1.21.0",
     "vite": "^8.1.0",

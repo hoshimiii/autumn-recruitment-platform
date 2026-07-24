@@ -1,3 +1,6 @@
+import { useEffect, useMemo, useState } from "react";
+import { Download } from "lucide-react";
+import { ApiError, emptyJobFilters, exportHref, getJob, listJobs, readJobFilters, writeJobFilters } from "../api/client";
 import type { Job, JobFilters as JobFilterState } from "../api/client";
 import { JobDetail } from "../features/jobs/JobDetail";
 import { JobFilters } from "../features/jobs/JobFilters";
@@ -5,70 +8,55 @@ import { JobTable } from "../features/jobs/JobTable";
 import { PageHeader } from "../features/layout/PageHeader";
 import type { AppRoute } from "../routing/routes";
 
-type HomePageProps = {
-  filters: JobFilterState;
-  filteredJobs: Job[];
-  hrefFor: (path: AppRoute) => string;
-  jobs: Job[];
-  onFiltersChange: (filters: JobFilterState) => void;
-  onNavigate: (path: AppRoute) => void;
-  onSelectJob: (jobId: string) => void;
-  selectedJob?: Job;
-  selectedJobId: string;
-};
+type Props = { hrefFor: (path: AppRoute) => string; onNavigate: (path: AppRoute) => void };
 
-export function HomePage({
-  filters,
-  filteredJobs,
-  hrefFor,
-  jobs,
-  onFiltersChange,
-  onNavigate,
-  onSelectJob,
-  selectedJob,
-  selectedJobId
-}: HomePageProps) {
-  const summary = [
-    { label: "岗位", value: jobs.length },
-    { label: "开放", value: jobs.filter((job) => job.deadlineStatus === "开放").length },
-    { label: "临近截止", value: jobs.filter((job) => job.deadlineStatus === "临近").length },
-    { label: "P1", value: jobs.filter((job) => job.priority === 1).length }
-  ];
+export function HomePage({ hrefFor, onNavigate }: Props) {
+  const [filters, setFilters] = useState<JobFilterState>(() => readJobFilters());
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [detail, setDetail] = useState<Job>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>();
 
-  return (
-    <main className="workbench">
-      <PageHeader
-        title="岗位展示"
-        description="集中查看秋招岗位、技术栈、证书要求与投递关键信息。"
-        actions={(
-          <>
-            <a className="button-link secondary-button" href={hrefFor("/ops/review")} onClick={(event) => {
-              event.preventDefault();
-              onNavigate("/ops/review");
-            }}>进入复核</a>
-            <a className="button-link" href={hrefFor("/ops/add")} onClick={(event) => {
-              event.preventDefault();
-              onNavigate("/ops/add");
-            }}>添加岗位</a>
-          </>
-        )}
-      />
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true); setError(undefined);
+    listJobs(filters, controller.signal).then((page) => {
+      setJobs(page.items);
+      setSelectedId((current) => page.items.some((job) => job.id === current) ? current : (page.items[0]?.id ?? ""));
+    }).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof ApiError ? reason.message : "无法加载岗位数据。"); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [filters]);
 
-      <section className="summary-band" aria-label="岗位概览">
-        {summary.map((item) => (
-          <div className="summary-item" key={item.label}>
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-          </div>
-        ))}
-      </section>
+  useEffect(() => {
+    if (!selectedId) { setDetail(undefined); return; }
+    const controller = new AbortController();
+    getJob(selectedId, controller.signal).then(setDetail).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof ApiError ? reason.message : "无法加载岗位详情。"); });
+    return () => controller.abort();
+  }, [selectedId]);
 
-      <JobFilters jobs={jobs} filters={filters} onChange={onFiltersChange} />
+  const selected = detail?.id === selectedId ? detail : jobs.find((job) => job.id === selectedId);
+  const summary = useMemo(() => [
+    ["岗位", jobs.length], ["开放", jobs.filter((job) => job.deadlineStatus === "开放").length],
+    ["今日更新", jobs.filter((job) => recent(job.updatedAt ?? job.capturedAt)).length], ["P1", jobs.filter((job) => job.sourceTrust === "P1").length]
+  ], [jobs]);
+  const updateFilters = (next: JobFilterState) => { writeJobFilters(next); setFilters(next); };
 
-      <div className="primary-grid">
-        <JobTable jobs={filteredJobs} selectedJobId={selectedJobId} onSelectJob={onSelectJob} />
-        {selectedJob ? <JobDetail job={selectedJob} /> : null}
-      </div>
-    </main>
-  );
+  return <main className="workbench">
+    <PageHeader title="岗位展示" description="每日已发布岗位，按条件筛选并查看完整来源证据。" actions={<>
+      <a className="icon-button secondary-button" aria-label="导出 Markdown" href={exportHref("md", filters)} title="导出 Markdown"><Download size={16} /></a>
+      <a className="icon-button secondary-button" aria-label="导出 Excel" href={exportHref("xlsx", filters)} title="导出 Excel"><Download size={16} /></a>
+      <a className="button-link" href={hrefFor("/ops/review")} onClick={(event) => { event.preventDefault(); onNavigate("/ops/review"); }}>进入复核</a>
+    </>} />
+    <section className="summary-band" aria-label="岗位概览">{summary.map(([label, value]) => <div className="summary-item" key={label}><span>{label}</span><strong>{value}</strong></div>)}</section>
+    <JobFilters jobs={jobs} filters={filters} onChange={updateFilters} />
+    {error ? <section className="panel state-panel" role="alert"><strong>岗位数据不可用</strong><span>{error}</span><button type="button" onClick={() => setFilters({ ...filters })}>重试</button></section> : null}
+    {loading ? <section className="panel state-panel" aria-live="polite">正在加载岗位数据…</section> : null}
+    {!loading && jobs.some((job) => stale(job.updatedAt ?? job.capturedAt)) ? <section className="panel state-panel" aria-live="polite">部分岗位超过 24 小时未更新，数据可能已过期。</section> : null}
+    {!loading && !error && jobs.length === 0 ? <section className="panel state-panel">暂无已发布岗位。</section> : null}
+    {jobs.length > 0 ? <div className="primary-grid"><JobTable jobs={jobs} selectedJobId={selectedId} onSelectJob={setSelectedId} />{selected ? <JobDetail job={selected} /> : null}</div> : null}
+  </main>;
 }
+
+function recent(value?: string): boolean { return Boolean(value && Date.now() - new Date(value).getTime() < 24 * 60 * 60 * 1000); }
+function stale(value?: string): boolean { return Boolean(value && Date.now() - new Date(value).getTime() >= 24 * 60 * 60 * 1000); }

@@ -1,22 +1,6 @@
-import type { Task } from "../api/client";
+import { useEffect, useState } from "react";
+import { ApiError, listRuns, startDailyRun } from "../api/client";
+import type { Run } from "../api/client";
 import { PageHeader } from "../features/layout/PageHeader";
 import { TaskList } from "../features/tasks/TaskList";
-
-type OpsTasksPageProps = {
-  tasks: Task[];
-};
-
-export function OpsTasksPage({ tasks }: OpsTasksPageProps) {
-  return (
-    <main className="workbench">
-      <PageHeader
-        title="任务队列"
-        description="沉淀导入、复核、导出等运营动作，避免干扰岗位展示主页。"
-      />
-
-      <div className="ops-grid single-column">
-        <TaskList tasks={tasks} />
-      </div>
-    </main>
-  );
-}
+export function OpsTasksPage() { const [runs, setRuns] = useState<Run[]>([]); const [error, setError] = useState<string>(); const [starting, setStarting] = useState(false); useEffect(() => { const controller = new AbortController(); listRuns(controller.signal).then(setRuns).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof ApiError ? reason.message : "无法加载运行记录。"); }); return () => controller.abort(); }, []); const start = async () => { setStarting(true); try { const run = await startDailyRun(); setRuns((current) => [run, ...current]); } catch (reason) { setError(reason instanceof ApiError ? reason.message : "无法启动每日任务。"); } finally { setStarting(false); } }; return <main className="workbench"><PageHeader title="运行记录" description="每个来源独立运行；失败不会中断其余来源。" actions={<button disabled={starting} onClick={() => void start()}>运行每日任务</button>} />{error ? <section className="panel state-panel" role="alert">{error}</section> : null}<div className="ops-grid single-column"><TaskList tasks={runs} /></div></main>; }

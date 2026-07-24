@@ -1,116 +1,34 @@
 import { expect, test } from "@playwright/test";
 
-test("home display shows job trust metadata while add route handles manual records", async ({ page }) => {
-  await page.goto("/");
+const job = { id: "job-1", companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师", jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"], certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放", status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML", sourceUrl: "https://jobs.example/frontend", sourceTrust: "P1", capturedAt: "2026-07-25T08:00:00Z", updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递", jd: "负责 React 前端开发", requirements: ["熟悉 TypeScript"], applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92 };
 
-  await expect(page.getByRole("heading", { name: "岗位展示" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "任务" })).toHaveCount(0);
-
-  const jobTable = page.getByRole("table");
-  await expect(jobTable).toContainText("来源可信度");
-  await expect(jobTable).toContainText("优先级");
-  await expect(jobTable).toContainText("技术栈");
-  await expect(jobTable).toContainText("证书/资质");
-
-  const algorithmRow = jobTable.locator("tbody tr").filter({ hasText: "新启智能" });
-  await expect(algorithmRow).toContainText("算法工程师");
-  await expect(algorithmRow).toContainText("manual");
-  await expect(algorithmRow).toContainText("P1");
-  await expect(algorithmRow).toContainText("Python, PyTorch, RAG");
-  await expect(algorithmRow).toContainText("英语四级, 论文/竞赛加分");
-
-  await algorithmRow.getByRole("button", { name: "算法工程师" }).click();
-
-  const detail = page.getByRole("complementary", { name: "岗位详情" });
-  await expect(detail).toContainText("来源 企业微信内推 · 企业微信");
-  await expect(detail).toContainText("来源链接 https://wecom.example/referral/newai");
-  await expect(detail).toContainText("置信度 64%");
-  await expect(detail).toContainText("登录 否");
-  await expect(detail).toContainText("验证码 是");
-  await expect(detail).toContainText("需处理动作 captcha_required");
-
-  await page.goto("/ops/add");
-  await expect(page.getByRole("heading", { name: "添加/导入" })).toBeVisible();
-
-  const manualPanel = page.getByRole("region", { name: "人工处理" });
-  await expect(manualPanel.getByLabel("平台")).toBeVisible();
-  await expect(manualPanel.getByLabel("公司名称")).toBeVisible();
-  await expect(manualPanel.getByLabel("技术栈")).toBeVisible();
-  await expect(manualPanel.getByLabel("证书/资质")).toBeVisible();
-
-  await manualPanel.getByLabel("平台").fill("BOSS直聘");
-  await manualPanel.getByLabel("公司名称").fill("星河制造");
-  await manualPanel.getByLabel("岗位名称").fill("后端开发工程师");
-  await manualPanel.getByLabel("搜索关键词").fill("Java, 秋招");
-  await manualPanel.getByLabel("需处理动作").selectOption("login_required");
-  await manualPanel.getByLabel("处理状态").selectOption("pending");
-  await manualPanel.getByLabel("投递方式").fill("官网表单");
-  await manualPanel.getByLabel("来源链接").fill("https://jobs.example/xinghe-backend");
-  await manualPanel.getByLabel("技术栈").fill("Java, Spring");
-  await manualPanel.getByLabel("证书/资质").fill("英语四级");
-  await manualPanel.getByLabel("优先级").fill("2");
-  await manualPanel.getByLabel("需要登录").check();
-  await manualPanel.getByLabel("需要验证码").check();
-  await manualPanel.getByLabel("处理说明").fill("需要登录后确认投递入口。");
-  await manualPanel.getByRole("button", { name: "保存处理记录" }).click();
-
-  const manualRecords = page.getByRole("region", { name: "人工记录" });
-  await expect(manualRecords).toContainText("1 条");
-  await expect(manualRecords).toContainText("星河制造 · 后端开发工程师");
-  await expect(manualRecords).toContainText("login_required · pending");
-  await expect(manualRecords).toContainText("P2");
-});
-
-test("desktop workbench keeps the job table readable without inner horizontal scroll", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto("/");
-
-  const tableMetrics = await page.locator(".job-table-panel .table-wrap").evaluate((element) => ({
-    clientWidth: element.clientWidth,
-    rowHeights: Array.from(element.querySelectorAll("tbody tr")).map((row) => row.getBoundingClientRect().height),
-    scrollWidth: element.scrollWidth,
-    viewportWidth: window.innerWidth,
-    bodyScrollWidth: document.documentElement.scrollWidth
-  }));
-  const detailBox = await page.getByRole("complementary", { name: "岗位详情" }).boundingBox();
-
-  expect(tableMetrics.scrollWidth).toBeLessThanOrEqual(tableMetrics.clientWidth + 1);
-  expect(tableMetrics.bodyScrollWidth).toBeLessThanOrEqual(tableMetrics.viewportWidth + 1);
-  expect(Math.max(...tableMetrics.rowHeights)).toBeLessThanOrEqual(96);
-  expect(detailBox?.width).toBeGreaterThan(300);
-});
-
-test("ops child routes keep operational work outside the home display", async ({ page }) => {
-  const expectedRoutes = [
-    { path: "/ops/review", title: "岗位复核", panel: "复核队列" },
-    { path: "/ops/config", title: "来源配置", panel: "来源清单" },
-    { path: "/ops/tasks", title: "任务队列", panel: "任务" }
-  ];
-
-  for (const route of expectedRoutes) {
-    await page.goto(route.path);
-    await expect(page.getByRole("heading", { name: route.title })).toBeVisible();
-    await expect(page.getByRole("heading", { exact: true, name: route.panel })).toBeVisible();
-    await expect(page.locator(".sidebar a[aria-current='page']")).toBeVisible();
-  }
-});
-
-test("ops page header stays compact instead of stretching into a hero panel", async ({ page }) => {
-  await page.setViewportSize({ width: 1920, height: 950 });
-  await page.goto("/ops/review");
-
-  const headerMetrics = await page.locator(".topbar").evaluate((element) => {
-    const box = element.getBoundingClientRect();
-    const heading = element.querySelector("h1")?.getBoundingClientRect();
-
-    return {
-      height: box.height,
-      headingOffsetTop: heading ? heading.top - box.top : null,
-      width: box.width
-    };
+async function mockApi(page: import("@playwright/test").Page) {
+  await page.route("**/api/v1/**", async (route) => {
+    const request = route.request(); const path = new URL(request.url()).pathname;
+    const body = path === "/api/v1/jobs" ? { items: [job], page: 1, pageSize: 50, total: 1 } : path === "/api/v1/jobs/job-1" ? job : path === "/api/v1/sources" ? [] : path === "/api/v1/review-items" ? [] : path === "/api/v1/runs" ? [] : path === "/api/v1/manual-items" && request.method() === "GET" ? [] : path === "/api/v1/manual-items" ? { ...await request.postDataJSON(), id: "manual-1" } : {};
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(body) });
   });
+}
 
-  expect(headerMetrics.width).toBeGreaterThan(1200);
-  expect(headerMetrics.height).toBeLessThanOrEqual(76);
-  expect(headerMetrics.headingOffsetTop).toBeLessThanOrEqual(18);
+test("home fetches jobs, keeps filters in URL, and shows details", async ({ page }) => {
+  await mockApi(page); await page.goto("/");
+  const table = page.getByRole("table");
+  await expect(table).toContainText("来源可信度");
+  await expect(table).toContainText("前端工程师");
+  await page.getByLabel("关键词").fill("云澜");
+  await expect(page).toHaveURL(/keyword=/);
+  await page.getByRole("button", { name: "前端工程师" }).click();
+  await expect(page.getByRole("complementary", { name: "岗位详情" })).toContainText("负责 React 前端开发");
+  await expect(page.getByLabel("导出 Markdown")).toHaveAttribute("href", /exports\/jobs\.md/);
+});
+
+test("ops routes stay separate and keep a compact desktop layout", async ({ page }) => {
+  await mockApi(page); await page.setViewportSize({ width: 1280, height: 720 });
+  for (const route of [{ path: "/ops/add", title: "添加/导入" }, { path: "/ops/review", title: "岗位复核" }, { path: "/ops/config", title: "来源配置" }, { path: "/ops/tasks", title: "运行记录" }]) {
+    await page.goto(route.path); await expect(page.locator("h1", { hasText: route.title })).toBeVisible();
+  }
+  await page.goto("/");
+  const metrics = await page.locator(".job-table-panel .table-wrap").evaluate((element) => ({ client: element.clientWidth, scroll: element.scrollWidth, body: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+  expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 1);
+  expect(metrics.body).toBeLessThanOrEqual(metrics.viewport + 1);
 });

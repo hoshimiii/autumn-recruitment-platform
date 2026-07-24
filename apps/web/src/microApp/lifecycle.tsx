@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { App } from "../App";
 import { isMicroAppEnvironment } from "./environment";
 import type { MicroAppGlobals } from "./environment";
@@ -26,11 +27,7 @@ export function mount(container = getRootElement()): void {
     root = createRoot(container);
   }
 
-  root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  );
+  flushSync(() => root?.render(<StrictMode><App /></StrictMode>));
 }
 
 export function unmount(): void {
