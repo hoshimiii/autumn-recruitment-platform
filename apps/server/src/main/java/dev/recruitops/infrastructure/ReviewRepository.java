@@ -15,7 +15,8 @@ public class ReviewRepository {
   public ReviewRepository(JdbcTemplate jdbc, JsonValues json) {
     this.jdbc = jdbc; this.json = json; this.mapper = (rs, row) -> new ReviewItem(rs.getLong("id"), rs.getLong("source_id"),
       ReviewStatus.valueOf(rs.getString("status")), json.tree(rs.getString("candidate_payload")), json.tree(rs.getString("normalized_payload")),
-      rs.getString("review_notes"), nullableLong(rs, "published_job_id"));
+      rs.getString("review_notes"), nullableLong(rs, "published_job_id"), rs.getString("dedupe_key"),
+      rs.getString("content_hash"));
   }
   public List<ReviewView> list() {
     return jdbc.query("""
@@ -27,7 +28,13 @@ public class ReviewRepository {
   public void publish(long id, long jobId, String payload) { jdbc.update("UPDATE review_items SET status='PUBLISHED',published_job_id=?,normalized_payload=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", jobId, payload, id); }
   public void transition(long id, ReviewStatus status, String notes) { jdbc.update("UPDATE review_items SET status=?,review_notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", status.name(), notes, id); }
   public void audit(long id, String action, String before, String after, String notes) { jdbc.update("INSERT INTO audit_logs (entity_type,entity_id,action,before_payload,after_payload,notes) VALUES ('REVIEW_ITEM',?,?,?,?,?)", id, action, before, after, notes); }
-  public void snapshot(long jobId, long sourceId, String sourceUrl, String payload) { jdbc.update("INSERT INTO job_snapshots (job_id,source_id,source_url,parsed_payload) VALUES (?,?,?,?)", jobId, sourceId, sourceUrl, payload); }
+  public void snapshot(long jobId, long sourceId, String sourceUrl, String contentHash,
+                       String rawContent, String payload) {
+    jdbc.update("""
+        INSERT INTO job_snapshots (job_id,source_id,source_url,content_hash,raw_content,parsed_payload)
+        VALUES (?,?,?,?,?,?)
+        """, jobId, sourceId, sourceUrl, contentHash, rawContent, payload);
+  }
   private static Long nullableLong(java.sql.ResultSet rs, String column) throws java.sql.SQLException {
     long value = rs.getLong(column); return rs.wasNull() ? null : value;
   }

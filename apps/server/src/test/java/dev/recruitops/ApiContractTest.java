@@ -43,20 +43,40 @@ class ApiContractTest {
     mvc.perform(get("/api/v1/health"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("status").value("UP"))
-        .andExpect(jsonPath("database").value("UP"));
+        .andExpect(jsonPath("database").value("UP"))
+        .andExpect(jsonPath("scheduler").value("READY"));
   }
 
   @Test
   void sourceStoresOnlyEnvironmentReference() throws Exception {
     String body = """
         {"name":"Official careers","type":"COMPANY","baseUrl":"https://careers.example.com",
+        "listUrl":"https://careers.example.com/jobs","cron":"0 0 8 * * *","timezone":"Asia/Shanghai",
+        "minIntervalSeconds":7,"maxPages":2,"maxItems":25,"timeoutSeconds":12,
         "adapterType":"HTML","mode":"HTML","complianceStatus":"ALLOWED","trustLevel":"OFFICIAL",
-        "companyCategory":"internet","aiSecretRef":"RECRUITOPS_AI_KEY"}
+        "companyCategory":"internet","selectors":"{\\"item\\":\\"article\\"}",
+        "fieldMapping":"{\\"companyName\\":\\"$const:Acme\\"}",
+        "termsUrl":"https://careers.example.com/terms","termsConfirmedAt":"2026-07-25T00:00:00Z",
+        "robotsUrl":"https://careers.example.com/robots.txt","aiEnabled":true,
+        "aiProvider":"openai-compatible","aiModel":"local-model","aiSecretRef":"RECRUITOPS_AI_KEY"}
         """;
     mvc.perform(post("/api/v1/sources").contentType(MediaType.APPLICATION_JSON).content(body))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("companyCategory").value("internet"))
         .andExpect(jsonPath("enabled").value(false))
+        .andExpect(jsonPath("listUrl").value("https://careers.example.com/jobs"))
+        .andExpect(jsonPath("cron").value("0 0 8 * * *"))
+        .andExpect(jsonPath("timezone").value("Asia/Shanghai"))
+        .andExpect(jsonPath("minIntervalSeconds").value(7))
+        .andExpect(jsonPath("maxPages").value(2))
+        .andExpect(jsonPath("maxItems").value(25))
+        .andExpect(jsonPath("timeoutSeconds").value(12))
+        .andExpect(jsonPath("selectors").value("{\"item\":\"article\"}"))
+        .andExpect(jsonPath("fieldMapping").value("{\"companyName\":\"$const:Acme\"}"))
+        .andExpect(jsonPath("termsConfirmedAt").value("2026-07-25T00:00:00Z"))
+        .andExpect(jsonPath("aiEnabled").value(true))
+        .andExpect(jsonPath("aiProvider").value("openai-compatible"))
+        .andExpect(jsonPath("aiModel").value("local-model"))
         .andExpect(jsonPath("secretEnvRef").doesNotExist());
     mvc.perform(get("/api/v1/sources"))
         .andExpect(status().isOk())
@@ -170,6 +190,19 @@ class ApiContractTest {
         .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"missing official link\"}"))
         .andExpect(status().isOk()).andExpect(jsonPath("status").value("REJECTED"));
     mvc.perform(get("/api/v1/jobs")).andExpect(status().isOk()).andExpect(jsonPath("total").value(0));
+  }
+
+  @Test
+  void collectionEndpointsPersistSynchronousRunHistory() throws Exception {
+    long sourceId = insertSource();
+    mvc.perform(post("/api/v1/sources/{id}/runs", sourceId))
+        .andExpect(status().isOk()).andExpect(jsonPath("status").value("BLOCKED"));
+    mvc.perform(post("/api/v1/sources/{id}/test", sourceId))
+        .andExpect(status().isOk()).andExpect(jsonPath("status").value("BLOCKED"));
+    mvc.perform(post("/api/v1/runs/daily"))
+        .andExpect(status().isOk()).andExpect(jsonPath("status").value("SUCCESS"));
+    mvc.perform(get("/api/v1/runs"))
+        .andExpect(status().isOk()).andExpect(jsonPath("items", hasSize(3)));
   }
 
   private long insertJob(String company, String title, String city, String tech, String certificates) {

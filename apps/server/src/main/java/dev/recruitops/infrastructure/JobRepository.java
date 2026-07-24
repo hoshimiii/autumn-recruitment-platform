@@ -36,14 +36,35 @@ public class JobRepository {
     return new Page(jdbc.query(select() + where + " ORDER BY j.updated_at DESC, j.id DESC LIMIT ? OFFSET ?", mapper, paged.toArray()), page, size, total);
   }
   public Optional<Job> find(long id) { return jdbc.query(select() + " WHERE j.id=? AND j.status='PUBLISHED'", mapper, id).stream().findFirst(); }
-  public Job insert(JobDraft draft, long sourceId) {
+  public SavedJob upsert(JobDraft draft, long sourceId) {
+    Optional<Long> existing = jdbc.queryForList(
+        "SELECT id FROM jobs WHERE dedupe_key=? ORDER BY id LIMIT 1", Long.class, draft.dedupeKey())
+        .stream().findFirst();
+    if (existing.isPresent()) {
+      jdbc.update("""
+          UPDATE jobs SET company_type=?,company_name=?,title=?,job_family=?,job_type=?,city=?,
+          deadline=?,status='PUBLISHED',priority=?,tech_stack=?,certificate_requirements=?,source_id=?,
+          source_url=?,apply_url=?,apply_method=?,requires_login=?,requires_captcha=?,source_trust_level=?,
+          jd=?,requirements=?,updated_at=CURRENT_TIMESTAMP WHERE id=?
+          """, draft.companyCategory(), draft.companyName(), draft.title(), draft.jobFamily(),
+          draft.jobType(), draft.city(), draft.deadline(), draft.priority(), json.write(draft.techStack()),
+          json.write(draft.certificateRequirements()), sourceId, draft.sourceUrl(), draft.applyUrl(),
+          draft.applyMethod(), draft.requiresLogin(), draft.requiresCaptcha(), draft.sourceTrust(),
+          draft.jd(), draft.requirements(), existing.get());
+      return new SavedJob(findById(existing.get()), false);
+    }
     jdbc.update("""
-        INSERT INTO jobs (company_type,company_name,title,job_type,city,deadline,status,tech_stack,
-        certificate_requirements,source_id,source_url,apply_url,source_trust_level,jd,requirements,dedupe_key)
-        VALUES (?,?,?,?,?,?, 'PUBLISHED',?,?,?,?,?,?,?,?,?)""", draft.companyType(), draft.companyName(), draft.title(),
-        draft.jobType(), draft.city(), draft.deadline(), json.write(draft.techStack()), json.write(draft.certificateRequirements()),
-        sourceId, draft.sourceUrl(), draft.applyUrl(), draft.sourceTrustLevel(), draft.jd(), draft.requirements(), draft.dedupeKey());
-    return findById(jdbc.queryForObject("SELECT last_insert_rowid()", Long.class));
+        INSERT INTO jobs (company_type,company_name,title,job_family,job_type,city,deadline,status,
+        priority,tech_stack,certificate_requirements,source_id,source_url,apply_url,apply_method,
+        requires_login,requires_captcha,source_trust_level,jd,requirements,dedupe_key)
+        VALUES (?,?,?,?,?,?,?,'PUBLISHED',?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, draft.companyCategory(), draft.companyName(), draft.title(), draft.jobFamily(),
+        draft.jobType(), draft.city(), draft.deadline(), draft.priority(), json.write(draft.techStack()),
+        json.write(draft.certificateRequirements()), sourceId, draft.sourceUrl(), draft.applyUrl(),
+        draft.applyMethod(), draft.requiresLogin(), draft.requiresCaptcha(), draft.sourceTrust(),
+        draft.jd(), draft.requirements(), draft.dedupeKey());
+    long id = jdbc.queryForObject("SELECT last_insert_rowid()", Long.class);
+    return new SavedJob(findById(id), true);
   }
   private Job findById(long id) { return jdbc.query(select() + " WHERE j.id=?", mapper, id).stream().findFirst().orElseThrow(); }
   private String select() {
@@ -67,7 +88,11 @@ public class JobRepository {
       String techStack, String certificate, String deadlineFrom, String deadlineTo, String sourceTrust,
       String changedSince, int page, int pageSize) {}
   public record Page(List<Job> items, int page, int pageSize, int total) {}
-  public record JobDraft(String companyType, String companyName, String title, String jobType, String city,
-      String deadline, List<String> techStack, List<String> certificateRequirements, String sourceUrl,
-      String applyUrl, String sourceTrustLevel, String jd, String requirements, String dedupeKey) {}
+  public record JobDraft(
+      String companyCategory, String companyName, String title, String jobFamily, String jobType,
+      String city, String deadline, int priority, List<String> techStack,
+      List<String> certificateRequirements, String sourceUrl, String applyUrl, String applyMethod,
+      boolean requiresLogin, boolean requiresCaptcha, String sourceTrust, String jd,
+      String requirements, String dedupeKey) {}
+  public record SavedJob(Job job, boolean created) {}
 }

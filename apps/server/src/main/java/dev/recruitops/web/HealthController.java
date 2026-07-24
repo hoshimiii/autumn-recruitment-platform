@@ -10,6 +10,7 @@ public class HealthController {
   private final JdbcTemplate jdbc;
   public HealthController(JdbcTemplate jdbc) { this.jdbc = jdbc; }
   @GetMapping public java.util.Map<String, String> health() {
-    jdbc.queryForObject("SELECT 1", Integer.class); return java.util.Map.of("status", "UP", "database", "UP", "scheduler", "NOT_CONFIGURED");
+    jdbc.queryForObject("SELECT 1", Integer.class);
+    return java.util.Map.of("status", "UP", "database", "UP", "scheduler", "READY");
   }
 }
