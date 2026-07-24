@@ -35,7 +35,34 @@ class ApiContractTest {
     jdbc.update("DELETE FROM review_items");
     jdbc.update("DELETE FROM jobs");
     jdbc.update("DELETE FROM collection_runs");
+    jdbc.update("DELETE FROM manual_items");
     jdbc.update("DELETE FROM sources");
+  }
+
+  @Test
+  void manualItemsUseFrontendContractAndValidateRequiredFields() throws Exception {
+    String body = """
+        {"platform":"Campus portal","companyName":"Acme","jobTitle":"Java Developer",
+        "searchKeywords":["Java","Spring"],"sourceUrl":"https://careers.example.com/jobs/1",
+        "techStackKeywords":["Java","Spring Boot"],"certificateNotes":"CET-6",
+        "requiredAction":"Submit profile","requiresLogin":true,"requiresCaptcha":false,
+        "applyMethod":"PORTAL","reminderAt":"2026-08-01T09:00:00Z","priority":2,
+        "status":"PENDING","notes":"Prepare transcript"}
+        """;
+    mvc.perform(post("/api/v1/manual-items").contentType(MediaType.APPLICATION_JSON).content(body))
+        .andExpect(status().isCreated()).andExpect(jsonPath("platform").value("Campus portal"))
+        .andExpect(jsonPath("searchKeywords[1]").value("Spring"))
+        .andExpect(jsonPath("techStackKeywords[1]").value("Spring Boot"))
+        .andExpect(jsonPath("requiresLogin").value(true));
+    mvc.perform(post("/api/v1/manual-items").contentType(MediaType.APPLICATION_JSON)
+        .content("{\"platform\":\"Official site\",\"companyName\":\"Later\",\"requiredAction\":\"Review\"}"))
+        .andExpect(status().isCreated());
+    mvc.perform(get("/api/v1/manual-items"))
+        .andExpect(status().isOk()).andExpect(jsonPath("items", hasSize(2)))
+        .andExpect(jsonPath("items[0].companyName").value("Later"));
+    mvc.perform(post("/api/v1/manual-items").contentType(MediaType.APPLICATION_JSON)
+        .content("{\"platform\":\"\",\"companyName\":\"\",\"requiredAction\":\"\"}"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("error.code").value("validation_error"));
   }
 
   @Test

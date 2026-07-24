@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.recruitops.application.JobExportService;
 import dev.recruitops.application.JobService;
+import dev.recruitops.application.CollectionWorkflow;
 import dev.recruitops.infrastructure.JobRepository;
 import io.modelcontextprotocol.server.McpServerFeatures.SyncToolSpecification;
 import io.modelcontextprotocol.spec.McpSchema;
@@ -16,17 +17,19 @@ import org.springframework.stereotype.Component;
 public class McpJobToolRegistry {
   private final JobService jobs;
   private final JobExportService exports;
+  private final CollectionWorkflow workflow;
   private final ObjectMapper json;
 
-  public McpJobToolRegistry(JobService jobs, JobExportService exports, ObjectMapper json) {
-    this.jobs = jobs; this.exports = exports; this.json = json;
+  public McpJobToolRegistry(JobService jobs, JobExportService exports, CollectionWorkflow workflow, ObjectMapper json) {
+    this.jobs = jobs; this.exports = exports; this.workflow = workflow; this.json = json;
   }
 
-  public List<String> toolNames() { return List.of("search_jobs", "get_job", "export_jobs"); }
+  public List<String> toolNames() { return List.of("search_jobs", "get_job", "export_jobs", "run_configured_source"); }
 
   public List<SyncToolSpecification> tools() {
     return List.of(tool("search_jobs", "Search published jobs.", this::searchJson), tool("get_job", "Get one published job.", this::getJson),
-        tool("export_jobs", "Export published jobs as Markdown or base64 XLSX.", this::exportJson));
+        tool("export_jobs", "Export published jobs as Markdown or base64 XLSX.", this::exportJson),
+        runTool());
   }
 
   public String searchJson(Map<String, Object> arguments) { return write(jobs.list(filter(arguments))); }
@@ -37,6 +40,8 @@ public class McpJobToolRegistry {
     if (format.equals("xlsx")) return Base64.getEncoder().encodeToString(exports.xlsx(filter(arguments)));
     throw new IllegalArgumentException("format must be md or xlsx");
   }
+
+  public String runSourceJson(Map<String, Object> arguments) { return write(workflow.runSource(sourceId(arguments))); }
 
   private SyncToolSpecification tool(String name, String description, java.util.function.Function<Map<String, Object>, String> action) {
     McpSchema.JsonSchema schema = new McpSchema.JsonSchema("object", Map.ofEntries(
@@ -51,6 +56,15 @@ public class McpJobToolRegistry {
     return new SyncToolSpecification(definition, (exchange, request) -> result(action, request.arguments() == null ? Map.of() : request.arguments()));
   }
 
+  private SyncToolSpecification runTool() {
+    McpSchema.JsonSchema schema = new McpSchema.JsonSchema("object",
+        Map.of("sourceId", Map.of("type", "integer")), List.of("sourceId"), false, null, null);
+    McpSchema.Tool definition = McpSchema.Tool.builder().name("run_configured_source")
+        .description("Run one configured collection source by id.").inputSchema(schema).build();
+    return new SyncToolSpecification(definition, (exchange, request) -> result(this::runSourceJson,
+        request.arguments() == null ? Map.of() : request.arguments()));
+  }
+
   private McpSchema.CallToolResult result(java.util.function.Function<Map<String, Object>, String> action, Map<String, Object> arguments) {
     try { return McpSchema.CallToolResult.builder().content(List.of(new McpSchema.TextContent(action.apply(arguments)))).build(); }
     catch (RuntimeException error) { return McpSchema.CallToolResult.builder().isError(true).content(List.of(new McpSchema.TextContent(error.getMessage()))).build(); }
@@ -63,6 +77,7 @@ public class McpJobToolRegistry {
   }
 
   private long id(Map<String, Object> values) { try { return Long.parseLong(String.valueOf(values.get("id"))); } catch (Exception error) { throw new IllegalArgumentException("id must be a number"); } }
+  private long sourceId(Map<String, Object> values) { try { return Long.parseLong(String.valueOf(values.get("sourceId"))); } catch (Exception error) { throw new IllegalArgumentException("sourceId must be a number"); } }
   private String string(Map<String, Object> values, String key) { Object value = values.get(key); return value == null ? null : String.valueOf(value); }
   private String write(Object value) { try { return json.writeValueAsString(value); } catch (JsonProcessingException error) { throw new IllegalStateException("Could not encode MCP result", error); } }
 }

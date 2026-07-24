@@ -55,7 +55,7 @@ public class SourceService {
     Source toSource(long id, JsonValues json) {
       URI base = validateUrl("baseUrl", baseUrl);
       String configuredList = blank(listUrl) ? baseUrl : listUrl;
-      URI list = validateUrl("listUrl", configuredList);
+      URI list = validateUrl("listUrl", configuredList.replace("{page}", "1"));
       if (!sameOrigin(base, list)) throw new IllegalArgumentException("listUrl must use the source base origin");
       if (!blank(robotsUrl) && !sameOrigin(base, validateUrl("robotsUrl", robotsUrl))) {
         throw new IllegalArgumentException("robotsUrl must use the source base origin");
