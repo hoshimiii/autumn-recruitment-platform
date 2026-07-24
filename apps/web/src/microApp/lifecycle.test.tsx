@@ -27,7 +27,7 @@ describe("micro-app child runtime", () => {
     document.body.append(container);
 
     mount(container);
-    expect(container.querySelector(".app-shell")).not.toBeNull();
+    expect(container.querySelector(".recruitment-app.app-shell")).not.toBeNull();
     unmount();
     expect(container.innerHTML).toBe("");
 

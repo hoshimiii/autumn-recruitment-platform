@@ -1,3 +1,4 @@
+@scope (.recruitment-app) {
 .filter-panel, .form-grid {
   display: grid;
   gap: 10px;
@@ -70,4 +71,5 @@
 
 @media (max-width: 960px) {
   .filter-panel, .form-grid { grid-template-columns: 1fr; }
+}
 }

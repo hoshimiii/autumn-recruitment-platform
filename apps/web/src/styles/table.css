@@ -1,3 +1,4 @@
+@scope (.recruitment-app) {
 .table-wrap {
   overflow-x: hidden;
   width: 100%;
@@ -73,4 +74,5 @@ th:nth-child(10), td:nth-child(10) { width: 8%; }
 @media (max-width: 960px) {
   .table-wrap { overflow-x: auto; }
   table { min-width: 900px; table-layout: auto; }
+}
 }

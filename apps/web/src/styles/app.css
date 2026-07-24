@@ -1,7 +1,8 @@
 @import "./table.css";
 @import "./controls.css";
 
-:root {
+@scope (.recruitment-app) {
+:scope {
   color-scheme: light;
   color: #171b22;
   background: #eef2f6;
@@ -25,7 +26,7 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; min-height: 100vh; }
+:scope { min-width: 320px; min-height: 100vh; }
 button, input, select, textarea { font: inherit; }
 h1, h2, h3, p { margin: 0; }
 
@@ -270,4 +271,5 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
   .sidebar { position: static; }
   .topbar { align-items: stretch; flex-direction: column; }
   .workbench { padding: 12px; }
+}
 }

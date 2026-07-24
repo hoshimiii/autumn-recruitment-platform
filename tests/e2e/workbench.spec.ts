@@ -32,3 +32,57 @@ test("ops routes stay separate and keep a compact desktop layout", async ({ page
   expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 1);
   expect(metrics.body).toBeLessThanOrEqual(metrics.viewport + 1);
 });
+
+test("real source collection closes the review, display, and export loop", async ({ page, request }) => {
+  const api = "http://127.0.0.1:8080/api/v1";
+  const sourceResponse = await request.post(`${api}/sources`, {
+    data: {
+      name: "齐鲁数科校招",
+      type: "COMPANY",
+      baseUrl: "http://127.0.0.1:4300",
+      listUrl: "http://127.0.0.1:4300/jobs",
+      adapterType: "JSON",
+      mode: "JSON",
+      complianceStatus: "ALLOWED",
+      trustLevel: "OFFICIAL",
+      companyCategory: "SHANDONG_SOE",
+      enabled: true,
+      termsConfirmedAt: "2026-07-25T00:00:00Z",
+      minIntervalSeconds: 0,
+      maxPages: 1,
+      maxItems: 10,
+      timeoutSeconds: 5,
+      selectors: JSON.stringify({ itemsPath: "items" }),
+      fieldMapping: JSON.stringify({
+        companyName: "company", title: "title", city: "city", jobFamily: "jobFamily",
+        jobType: "jobType", techStack: "techStack", certificateRequirements: "certificates",
+        deadline: "deadline", jd: "jd", requirements: "requirements", sourceUrl: "url",
+        applyUrl: "applyUrl", sourceTrust: "$const:OFFICIAL"
+      })
+    }
+  });
+  expect(sourceResponse.ok()).toBeTruthy();
+  const source = await sourceResponse.json() as { id: number };
+  const run = await request.post(`${api}/sources/${source.id}/runs`);
+  expect(run.ok()).toBeTruthy();
+  expect(await run.json()).toMatchObject({ status: "SUCCESS", discoveredCount: 1, reviewItemCount: 1 });
+
+  await page.goto("/ops/review");
+  await expect(page.getByText("齐鲁数科 · Java 开发工程师")).toBeVisible();
+  await page.getByRole("button", { name: "通过" }).click();
+  await expect(page.getByText("当前没有待复核岗位。")).toBeVisible();
+
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Java 开发工程师" })).toBeVisible();
+  await page.getByLabel("技术栈").selectOption("Java");
+  await expect(page).toHaveURL(/techStack=Java/);
+  await page.getByRole("button", { name: "Java 开发工程师" }).click();
+  await expect(page.getByRole("complementary", { name: "岗位详情" })).toContainText("Spring Boot");
+
+  const markdown = await request.get(`${api}/exports/jobs.md?techStack=Java`);
+  expect(markdown.ok()).toBeTruthy();
+  expect(await markdown.text()).toContain("齐鲁数科");
+  const workbook = await request.get(`${api}/exports/jobs.xlsx?techStack=Java`);
+  expect(workbook.ok()).toBeTruthy();
+  expect((await workbook.body()).subarray(0, 2).toString()).toBe("PK");
+});
