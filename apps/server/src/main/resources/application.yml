@@ -11,3 +11,10 @@ server:
   error:
     whitelabel:
       enabled: false
+recruitops:
+  collector:
+    user-agent: "${RECRUITOPS_USER_AGENT:AutumnRecruitmentBot/1.0}"
+    connect-timeout-seconds: ${RECRUITOPS_CONNECT_TIMEOUT_SECONDS:10}
+    minimum-floor-seconds: ${RECRUITOPS_MINIMUM_FLOOR_SECONDS:5}
+    daily-cron: "${RECRUITOPS_DAILY_CRON:0 0 8 * * *}"
+    daily-timezone: "${RECRUITOPS_DAILY_TIMEZONE:Asia/Shanghai}"
