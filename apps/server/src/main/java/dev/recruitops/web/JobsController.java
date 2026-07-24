@@ -18,7 +18,7 @@ public class JobsController {
       @RequestParam(required=false) String techStack, @RequestParam(required=false) String certificate, @RequestParam(required=false) String deadlineFrom,
       @RequestParam(required=false) String deadlineTo, @RequestParam(required=false) String sourceTrust, @RequestParam(required=false) String changedSince,
       @RequestParam(defaultValue="1") int page, @RequestParam(defaultValue="20") int pageSize) {
-    return jobs.list(new JobRepository.JobFilter(keyword, companyCategory, company, jobType, city, techStack, certificate, deadlineFrom, deadlineTo, sourceTrust, changedSince, page, pageSize));
+    return jobs.list(JobFilters.of(keyword, companyCategory, company, jobType, city, techStack, certificate, deadlineFrom, deadlineTo, sourceTrust, changedSince, page, pageSize));
   }
   @GetMapping("/{id}") public Job detail(@PathVariable long id) { return jobs.detail(id); }
 }
