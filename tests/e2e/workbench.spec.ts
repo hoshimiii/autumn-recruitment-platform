@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 
-const job = { id: "job-1", companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师", jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"], certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放", status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML", sourceUrl: "https://jobs.example/frontend", sourceTrust: "P1", capturedAt: "2026-07-25T08:00:00Z", updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递", jd: "负责 React 前端开发", requirements: ["熟悉 TypeScript"], applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92 };
+const job = { id: 101, companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师", jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"], certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放", status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML", sourceUrl: "https://jobs.example/frontend", sourceTrust: "P1", capturedAt: "2026-07-25T08:00:00Z", updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递", jd: "负责 React 前端开发", requirements: "熟悉 TypeScript", applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92 };
 
 async function mockApi(page: import("@playwright/test").Page) {
   await page.route("**/api/v1/**", async (route) => {
     const request = route.request(); const path = new URL(request.url()).pathname;
-    const body = path === "/api/v1/jobs" ? { items: [job], page: 1, pageSize: 50, total: 1 } : path === "/api/v1/jobs/job-1" ? job : path === "/api/v1/sources" ? [] : path === "/api/v1/review-items" ? [] : path === "/api/v1/runs" ? [] : path === "/api/v1/manual-items" && request.method() === "GET" ? [] : path === "/api/v1/manual-items" ? { ...await request.postDataJSON(), id: "manual-1" } : {};
+    const body = path === "/api/v1/jobs" ? { items: [job], page: 1, pageSize: 50, total: 1 } : path === "/api/v1/jobs/101" ? job : path === "/api/v1/sources" ? [] : path === "/api/v1/review-items" ? [] : path === "/api/v1/runs" ? [] : path === "/api/v1/manual-items" && request.method() === "GET" ? [] : path === "/api/v1/manual-items" ? { ...await request.postDataJSON(), id: 301 } : {};
     await route.fulfill({ contentType: "application/json", body: JSON.stringify(body) });
   });
 }

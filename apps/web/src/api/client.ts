@@ -4,8 +4,10 @@ export class ApiError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
+export type EntityId = number | string;
+
 export type Job = {
-  id: string;
+  id: EntityId;
   companyCategory: string;
   companyName: string;
   title: string;
@@ -27,7 +29,7 @@ export type Job = {
   reviewStatus: string;
   applicationStatus?: string;
   jd?: string;
-  requirements?: string[];
+  requirements?: string;
   applyUrl?: string;
   applyMethod?: string;
   requiresLogin?: boolean;
@@ -48,7 +50,7 @@ export const emptyJobFilters: JobFilters = {
 
 export type JobPage = { items: Job[]; page: number; pageSize: number; total: number };
 export type Source = {
-  id: string; name: string; type: string; baseUrl: string; adapterType: string; mode: "JSON" | "HTML" | "MANUAL";
+  id: EntityId; name: string; type: string; baseUrl: string; adapterType: string; mode: "JSON" | "HTML" | "MANUAL";
   trustLevel: string; companyCategory: string; enabled: boolean; cron: string; timezone: string; minIntervalSeconds: number;
   maxPages: number; selectors?: string; fieldMapping?: string; robotsUrl?: string; termsUrl?: string;
   complianceStatus: string; lastRunAt?: string; lastStatus?: string; aiEnabled: boolean; aiProvider?: string; aiModel?: string;
@@ -56,10 +58,10 @@ export type Source = {
 };
 
 export type SourceInput = Omit<Source, "id" | "lastRunAt" | "lastStatus">;
-export type ReviewItem = { id: string; companyName: string; title: string; reason?: string; confidence?: number; status: string; sourceName?: string; createdAt?: string };
-export type Run = { id: string; sourceName?: string; triggerType: string; status: string; startedAt?: string; finishedAt?: string; discoveredCount: number; reviewItemCount: number; errorCount: number; errorSummary?: string };
+export type ReviewItem = { id: EntityId; companyName: string; title: string; reason?: string; confidence?: number; status: string; sourceName?: string; createdAt?: string };
+export type Run = { id: EntityId; sourceName?: string; triggerType: string; status: string; startedAt?: string; finishedAt?: string; discoveredCount: number; reviewItemCount: number; errorCount: number; errorSummary?: string };
 export type ManualActionInput = { platform: string; companyName: string; jobTitle?: string; searchKeywords?: string[]; sourceUrl?: string; techStackKeywords?: string[]; certificateNotes?: string; requiredAction: string; requiresLogin?: boolean; requiresCaptcha?: boolean; applyMethod?: string; reminderAt?: string; priority?: number; status?: string; notes?: string };
-export type ManualItem = ManualActionInput & { id: string; createdAt?: string };
+export type ManualItem = ManualActionInput & { id: EntityId; createdAt?: string };
 
 type HostConfig = Window & { __RECRUITMENT_API_BASE_URL__?: string };
 
@@ -87,11 +89,11 @@ export function listJobs(filters: JobFilters, signal: AbortSignal): Promise<JobP
   return request<JobPage>(`/jobs?${query}`, { signal });
 }
 
-export function getJob(id: string, signal: AbortSignal): Promise<Job> { return request<Job>(`/jobs/${encodeURIComponent(id)}`, { signal }); }
+export function getJob(id: EntityId, signal: AbortSignal): Promise<Job> { return request<Job>(`/jobs/${encodeURIComponent(String(id))}`, { signal }); }
 export function listSources(signal: AbortSignal): Promise<Source[]> { return request<Source[] | { items: Source[] }>("/sources", { signal }).then(list); }
 export function createSource(input: SourceInput): Promise<Source> { return request<Source>("/sources", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); }
 export function listReviewItems(signal: AbortSignal): Promise<ReviewItem[]> { return request<ReviewItem[] | { items: ReviewItem[] }>("/review-items", { signal }).then(list); }
-export function reviewAction(id: string, action: "approve" | "reject" | "block", body: Record<string, unknown> = {}): Promise<void> { return request<void>(`/review-items/${encodeURIComponent(id)}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
+export function reviewAction(id: EntityId, action: "approve" | "reject" | "block", body: Record<string, unknown> = {}): Promise<void> { return request<void>(`/review-items/${encodeURIComponent(String(id))}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
 export function listRuns(signal: AbortSignal): Promise<Run[]> { return request<Run[] | { items: Run[] }>("/runs", { signal }).then(list); }
 export function startDailyRun(): Promise<Run> { return request<Run>("/runs/daily", { method: "POST" }); }
 export function listManualItems(signal: AbortSignal): Promise<ManualItem[]> { return request<ManualItem[] | { items: ManualItem[] }>("/manual-items", { signal }).then(list); }

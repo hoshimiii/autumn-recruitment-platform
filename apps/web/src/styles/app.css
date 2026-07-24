@@ -219,6 +219,7 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
   font-size: 12px;
   line-height: 1.55;
 }
+.requirements-text { white-space: pre-wrap; }
 
 .detail-panel ul { margin: 0; padding-left: 17px; }
 
