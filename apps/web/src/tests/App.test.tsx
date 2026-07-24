@@ -93,6 +93,24 @@ describe("API-driven micro frontend", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("环境变量引用");
   });
 
+  it("keeps an unknown new source disabled when it is saved", async () => {
+    const fetchMock = mockApi();
+    window.history.replaceState({}, "", "/ops/config");
+    render(<App />);
+    await screen.findByRole("heading", { name: "来源配置" });
+
+    fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
+    expect(screen.getByLabelText("启用来源")).not.toBeChecked();
+    fireEvent.change(screen.getByLabelText("来源名称"), { target: { value: "待确认官网" } });
+    fireEvent.change(screen.getByLabelText("官网 URL"), { target: { value: "https://jobs.example" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/sources",
+      expect.objectContaining({ method: "POST", body: expect.stringContaining('"enabled":false') })
+    ));
+  });
+
   it("uses the host-provided API base URL", () => {
     window.__RECRUITMENT_API_BASE_URL__ = "http://127.0.0.1:8080/api/v1/";
     expect(getApiBaseUrl()).toBe("http://127.0.0.1:8080/api/v1");

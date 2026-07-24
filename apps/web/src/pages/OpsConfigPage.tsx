@@ -4,7 +4,7 @@ import type { Source, SourceInput } from "../api/client";
 import { PageHeader } from "../features/layout/PageHeader";
 import { SourceList } from "../features/sources/SourceList";
 
-const initial: SourceInput = { name: "", type: "official", baseUrl: "", adapterType: "OfficialCareerSiteAdapter", mode: "HTML", trustLevel: "P1", companyCategory: "", enabled: true, cron: "0 0 8 * * *", timezone: "Asia/Shanghai", minIntervalSeconds: 5, maxPages: 10, selectors: "", fieldMapping: "", robotsUrl: "", termsUrl: "", complianceStatus: "unknown", aiEnabled: false, aiProvider: "", aiModel: "", aiSecretRef: "" };
+const initial: SourceInput = { name: "", type: "official", baseUrl: "", adapterType: "OfficialCareerSiteAdapter", mode: "HTML", trustLevel: "P1", companyCategory: "", enabled: false, cron: "0 0 8 * * *", timezone: "Asia/Shanghai", minIntervalSeconds: 5, maxPages: 10, selectors: "", fieldMapping: "", robotsUrl: "", termsUrl: "", complianceStatus: "unknown", aiEnabled: false, aiProvider: "", aiModel: "", aiSecretRef: "" };
 
 export function OpsConfigPage() {
   const [sources, setSources] = useState<Source[]>([]); const [showForm, setShowForm] = useState(false); const [error, setError] = useState<string>();
