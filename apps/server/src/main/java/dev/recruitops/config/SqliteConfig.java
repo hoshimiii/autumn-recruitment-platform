@@ -16,7 +16,9 @@ public class SqliteConfig {
   @Bean DataSource dataSource(DataSourceProperties properties) {
     ensureSqliteDirectory(properties.getUrl());
     HikariDataSource source = properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
-    source.setMaximumPoolSize(1); source.setMinimumIdle(1); return source;
+    source.setMaximumPoolSize(1); source.setMinimumIdle(1);
+    source.setConnectionInitSql("PRAGMA foreign_keys=ON");
+    return source;
   }
   @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
   @Bean PlatformTransactionManager transactionManager(DataSource dataSource) {

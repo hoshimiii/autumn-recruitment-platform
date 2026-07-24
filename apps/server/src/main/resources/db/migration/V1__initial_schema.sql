@@ -2,7 +2,7 @@ CREATE TABLE sources (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL, type TEXT NOT NULL, base_url TEXT NOT NULL, adapter_type TEXT NOT NULL,
   mode TEXT NOT NULL, compliance_status TEXT NOT NULL, trust_level TEXT NOT NULL, scope TEXT NOT NULL,
-  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)), secret_env_ref TEXT,
+  enabled INTEGER NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)), secret_env_ref TEXT,
   config_version INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

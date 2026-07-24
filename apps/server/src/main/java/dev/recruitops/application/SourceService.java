@@ -2,6 +2,7 @@ package dev.recruitops.application;
 
 import dev.recruitops.domain.Source;
 import dev.recruitops.infrastructure.SourceRepository;
+import java.net.URI;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -18,9 +19,24 @@ public class SourceService {
     if (!secret.matches("[A-Z][A-Z0-9_]*")) throw new IllegalArgumentException("secretEnvRef must be an environment variable name");
     return secret;
   }
+  private static String validateBaseUrl(String baseUrl) {
+    if (baseUrl == null || baseUrl.isBlank()) {
+      throw new IllegalArgumentException("baseUrl must be an absolute http or https URL without userinfo");
+    }
+    try {
+      URI uri = URI.create(baseUrl);
+      if (!uri.isAbsolute() || uri.getUserInfo() != null || uri.getHost() == null
+          || !("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))) {
+        throw new IllegalArgumentException("baseUrl must be an absolute http or https URL without userinfo");
+      }
+      return baseUrl;
+    } catch (IllegalArgumentException error) {
+      throw new IllegalArgumentException("baseUrl must be an absolute http or https URL without userinfo");
+    }
+  }
   public record SourceInput(String name, String type, String baseUrl, String adapterType, String mode,
-      String complianceStatus, String trustLevel, String scope, Boolean enabled, String secretEnvRef) {
-    Source toSource(long id) { return new Source(id, name, type, baseUrl, adapterType, mode, complianceStatus,
-        trustLevel, scope, enabled == null || enabled, 1); }
+      String complianceStatus, String trustLevel, String companyCategory, Boolean enabled, String secretEnvRef) {
+    Source toSource(long id) { return new Source(id, name, type, validateBaseUrl(baseUrl), adapterType, mode, complianceStatus,
+        trustLevel, companyCategory, enabled != null && enabled, 1); }
   }
 }

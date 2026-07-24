@@ -21,7 +21,7 @@ public class SourceRepository {
     jdbc.update("""
         INSERT INTO sources (name,type,base_url,adapter_type,mode,compliance_status,trust_level,scope,enabled,secret_env_ref)
         VALUES (?,?,?,?,?,?,?,?,?,?)""", source.name(), source.type(), source.baseUrl(), source.adapterType(), source.mode(),
-        source.complianceStatus(), source.trustLevel(), source.scope(), source.enabled(), secretEnvRef);
+        source.complianceStatus(), source.trustLevel(), source.companyCategory(), source.enabled(), secretEnvRef);
     return find(jdbc.queryForObject("SELECT last_insert_rowid()", Long.class)).orElseThrow();
   }
   public Source update(long id, Source source, String secretEnvRef) {
@@ -29,7 +29,7 @@ public class SourceRepository {
         UPDATE sources SET name=?,type=?,base_url=?,adapter_type=?,mode=?,compliance_status=?,
         trust_level=?,scope=?,enabled=?,secret_env_ref=COALESCE(?, secret_env_ref),config_version=config_version+1,
         updated_at=CURRENT_TIMESTAMP WHERE id=?""", source.name(), source.type(), source.baseUrl(), source.adapterType(),
-        source.mode(), source.complianceStatus(), source.trustLevel(), source.scope(), source.enabled(), secretEnvRef, id);
+        source.mode(), source.complianceStatus(), source.trustLevel(), source.companyCategory(), source.enabled(), secretEnvRef, id);
     if (changed == 0) throw new MissingResourceException("Source not found");
     return find(id).orElseThrow();
   }

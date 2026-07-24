@@ -13,25 +13,29 @@ public class JobRepository {
   private final JdbcTemplate jdbc; private final JsonValues json; private final RowMapper<Job> mapper;
   public JobRepository(JdbcTemplate jdbc, JsonValues json) {
     this.jdbc = jdbc; this.json = json; this.mapper = (rs, row) -> new Job(rs.getLong("id"), rs.getString("company_type"),
-      rs.getString("company_name"), rs.getString("title"), rs.getString("job_type"), rs.getString("city"),
-      rs.getString("deadline"), rs.getString("status"), json.strings(rs.getString("tech_stack")),
-      json.strings(rs.getString("certificate_requirements")), rs.getString("source_url"), rs.getString("apply_url"),
-      rs.getString("source_trust_level"), rs.getString("jd"), rs.getString("requirements"));
+      rs.getString("company_name"), rs.getString("title"), rs.getString("job_family"), rs.getString("job_type"),
+      rs.getString("city"), rs.getString("deadline"), rs.getString("status"), rs.getInt("priority"),
+      json.strings(rs.getString("tech_stack")), json.strings(rs.getString("certificate_requirements")),
+      rs.getString("source_url"), rs.getString("apply_url"), rs.getString("apply_method"),
+      rs.getBoolean("requires_login"), rs.getBoolean("requires_captcha"), rs.getString("source_trust_level"),
+      rs.getString("source_name"), rs.getString("source_type"), rs.getString("captured_at"),
+      rs.getString("updated_at"), rs.getString("review_status"), nullableDouble(rs, "confidence"),
+      rs.getString("jd"), rs.getString("requirements"));
   }
   public Page list(JobFilter filter) {
-    List<Object> args = new ArrayList<>(); StringBuilder where = new StringBuilder(" WHERE status='PUBLISHED' AND (deadline IS NULL OR deadline='' OR deadline >= date('now'))");
-    add(where, args, "(company_name LIKE ? OR title LIKE ? OR jd LIKE ?)", filter.keyword(), 3);
-    add(where, args, "company_type=?", filter.companyCategory(), 1); add(where, args, "company_name=?", filter.company(), 1);
-    add(where, args, "job_type=?", filter.jobType(), 1); add(where, args, "city=?", filter.city(), 1);
-    add(where, args, "tech_stack LIKE ?", filter.techStack(), 1); add(where, args, "certificate_requirements LIKE ?", filter.certificate(), 1);
-    add(where, args, "deadline >= ?", filter.deadlineFrom(), 1); add(where, args, "deadline <= ?", filter.deadlineTo(), 1);
-    add(where, args, "source_trust_level=?", filter.sourceTrust(), 1); add(where, args, "updated_at >= ?", filter.changedSince(), 1);
-    int total = jdbc.queryForObject("SELECT COUNT(*) FROM jobs" + where, Integer.class, args.toArray());
+    List<Object> args = new ArrayList<>(); StringBuilder where = new StringBuilder(" WHERE j.status='PUBLISHED' AND (j.deadline IS NULL OR j.deadline='' OR j.deadline >= date('now'))");
+    add(where, args, "(j.company_name LIKE ? OR j.title LIKE ? OR j.jd LIKE ?)", filter.keyword(), 3);
+    add(where, args, "j.company_type=?", filter.companyCategory(), 1); add(where, args, "j.company_name=?", filter.company(), 1);
+    add(where, args, "j.job_type=?", filter.jobType(), 1); add(where, args, "j.city=?", filter.city(), 1);
+    add(where, args, "j.tech_stack LIKE ?", filter.techStack(), 1); add(where, args, "j.certificate_requirements LIKE ?", filter.certificate(), 1);
+    add(where, args, "j.deadline >= ?", filter.deadlineFrom(), 1); add(where, args, "j.deadline <= ?", filter.deadlineTo(), 1);
+    add(where, args, "j.source_trust_level=?", filter.sourceTrust(), 1); add(where, args, "j.updated_at >= ?", filter.changedSince(), 1);
+    int total = jdbc.queryForObject("SELECT COUNT(*) FROM jobs j" + where, Integer.class, args.toArray());
     int page = Math.max(1, filter.page()); int size = Math.min(100, Math.max(1, filter.pageSize()));
     List<Object> paged = new ArrayList<>(args); paged.add(size); paged.add((page - 1) * size);
-    return new Page(jdbc.query("SELECT * FROM jobs" + where + " ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?", mapper, paged.toArray()), page, size, total);
+    return new Page(jdbc.query(select() + where + " ORDER BY j.updated_at DESC, j.id DESC LIMIT ? OFFSET ?", mapper, paged.toArray()), page, size, total);
   }
-  public Optional<Job> find(long id) { return jdbc.query("SELECT * FROM jobs WHERE id=? AND status='PUBLISHED'", mapper, id).stream().findFirst(); }
+  public Optional<Job> find(long id) { return jdbc.query(select() + " WHERE j.id=? AND j.status='PUBLISHED'", mapper, id).stream().findFirst(); }
   public Job insert(JobDraft draft, long sourceId) {
     jdbc.update("""
         INSERT INTO jobs (company_type,company_name,title,job_type,city,deadline,status,tech_stack,
@@ -41,10 +45,23 @@ public class JobRepository {
         sourceId, draft.sourceUrl(), draft.applyUrl(), draft.sourceTrustLevel(), draft.jd(), draft.requirements(), draft.dedupeKey());
     return findById(jdbc.queryForObject("SELECT last_insert_rowid()", Long.class));
   }
-  private Job findById(long id) { return jdbc.query("SELECT * FROM jobs WHERE id=?", mapper, id).stream().findFirst().orElseThrow(); }
+  private Job findById(long id) { return jdbc.query(select() + " WHERE j.id=?", mapper, id).stream().findFirst().orElseThrow(); }
+  private String select() {
+    return """
+        SELECT j.*, s.name AS source_name, s.type AS source_type,
+        COALESCE(snapshot.captured_at, j.created_at) AS captured_at, review.status AS review_status,
+        review.confidence AS confidence FROM jobs j
+        LEFT JOIN sources s ON s.id=j.source_id
+        LEFT JOIN job_snapshots snapshot ON snapshot.id=(SELECT id FROM job_snapshots WHERE job_id=j.id ORDER BY captured_at DESC, id DESC LIMIT 1)
+        LEFT JOIN review_items review ON review.id=(SELECT id FROM review_items WHERE published_job_id=j.id ORDER BY updated_at DESC, id DESC LIMIT 1)
+        """;
+  }
   private void add(StringBuilder where, List<Object> args, String sql, String value, int copies) {
     if (value == null || value.isBlank()) return; where.append(" AND ").append(sql);
     for (int i = 0; i < copies; i++) args.add(copies == 3 ? "%" + value + "%" : (sql.contains("LIKE") ? "%" + value + "%" : value));
+  }
+  private static Double nullableDouble(java.sql.ResultSet rs, String column) throws java.sql.SQLException {
+    double value = rs.getDouble(column); return rs.wasNull() ? null : value;
   }
   public record JobFilter(String keyword, String companyCategory, String company, String jobType, String city,
       String techStack, String certificate, String deadlineFrom, String deadlineTo, String sourceTrust,

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import dev.recruitops.domain.Job;
 import dev.recruitops.domain.ReviewItem;
 import dev.recruitops.domain.ReviewStatus;
+import dev.recruitops.domain.ReviewView;
 import dev.recruitops.infrastructure.JobRepository;
 import dev.recruitops.infrastructure.JsonValues;
 import dev.recruitops.infrastructure.MissingResourceException;
@@ -16,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReviewService {
   private final ReviewRepository reviews; private final JobRepository jobs; private final JsonValues json;
   public ReviewService(ReviewRepository reviews, JobRepository jobs, JsonValues json) { this.reviews = reviews; this.jobs = jobs; this.json = json; }
-  public List<ReviewItem> list() { return reviews.list(); }
+  public List<ReviewView> list() { return reviews.list(); }
   @Transactional
   public Job approve(long id, JsonNode edited) {
     ReviewItem item = item(id);
