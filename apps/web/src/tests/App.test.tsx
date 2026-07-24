@@ -2,15 +2,16 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { getApiBaseUrl } from "../api/client";
+import { JobDetail } from "../features/jobs/JobDetail";
 
 const job = {
-  id: "job-1", companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师",
+  id: 101, companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师",
   jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"],
   certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放",
   status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML",
   sourceUrl: "https://jobs.example/frontend", sourceTrust: "P1", capturedAt: "2026-07-25T08:00:00Z",
   updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递",
-  jd: "负责 React 前端开发", requirements: ["熟悉 TypeScript"], applyUrl: "https://jobs.example/apply",
+  jd: "负责 React 前端开发", requirements: "熟悉 TypeScript\n具备工程化经验", applyUrl: "https://jobs.example/apply",
   applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92, snapshots: []
 };
 
@@ -18,14 +19,15 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
-function mockApi(overrides: Record<string, Response> = {}) {
-  return vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+function mockApi(overrides: Record<string, Response> = {}, reviewItems: unknown[] = []) {
+  return vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     const url = String(input);
     if (overrides[url]) return Promise.resolve(overrides[url]);
-    if (url.includes("/jobs/job-1")) return Promise.resolve(json(job));
+    if (url.includes("/jobs/101")) return Promise.resolve(json(job));
     if (url.includes("/jobs")) return Promise.resolve(json({ items: [job], page: 1, pageSize: 50, total: 1 }));
     if (url.includes("/sources")) return Promise.resolve(json([]));
-    if (url.includes("/review-items")) return Promise.resolve(json([]));
+    if (url.includes("/review-items/") && init?.method === "POST") return Promise.resolve(new Response(null, { status: 204 }));
+    if (url.includes("/review-items")) return Promise.resolve(json(reviewItems));
     if (url.includes("/runs")) return Promise.resolve(json([]));
     if (url.includes("/manual-items")) return Promise.resolve(json([]));
     return Promise.resolve(json({}));
@@ -50,6 +52,12 @@ describe("API-driven micro frontend", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "前端工程师" }));
     expect(await screen.findByText("负责 React 前端开发")).toBeInTheDocument();
+    expect(screen.getByText(/熟悉 TypeScript\s+具备工程化经验/)).toHaveClass("requirements-text");
+  });
+
+  it("shows an empty state when job requirements are missing", () => {
+    render(<JobDetail job={{ ...job, requirements: undefined }} />);
+    expect(screen.getByText("暂无岗位要求。")).toBeInTheDocument();
   });
 
   it("persists filters in the URL and restores them after remount", async () => {
@@ -108,6 +116,28 @@ describe("API-driven micro frontend", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/sources",
       expect.objectContaining({ method: "POST", body: expect.stringContaining('"enabled":false') })
+    ));
+  });
+
+  it("sends a non-empty reason when blocking a numeric review item", async () => {
+    const fetchMock = mockApi({}, [{
+      id: 202,
+      companyName: "云澜科技",
+      title: "前端工程师",
+      status: "PENDING_REVIEW",
+      confidence: 0.8
+    }]);
+    window.history.replaceState({}, "", "/ops/review");
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "人工跟进" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/review-items/202/block",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ reason: "manual_follow_up" })
+      })
     ));
   });
 

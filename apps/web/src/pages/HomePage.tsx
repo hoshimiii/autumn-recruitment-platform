@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { ApiError, emptyJobFilters, exportHref, getJob, listJobs, readJobFilters, writeJobFilters } from "../api/client";
-import type { Job, JobFilters as JobFilterState } from "../api/client";
+import type { EntityId, Job, JobFilters as JobFilterState } from "../api/client";
 import { JobDetail } from "../features/jobs/JobDetail";
 import { JobFilters } from "../features/jobs/JobFilters";
 import { JobTable } from "../features/jobs/JobTable";
@@ -13,7 +13,7 @@ type Props = { hrefFor: (path: AppRoute) => string; onNavigate: (path: AppRoute)
 export function HomePage({ hrefFor, onNavigate }: Props) {
   const [filters, setFilters] = useState<JobFilterState>(() => readJobFilters());
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedId, setSelectedId] = useState<EntityId | null>(null);
   const [detail, setDetail] = useState<Job>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -23,13 +23,13 @@ export function HomePage({ hrefFor, onNavigate }: Props) {
     setLoading(true); setError(undefined);
     listJobs(filters, controller.signal).then((page) => {
       setJobs(page.items);
-      setSelectedId((current) => page.items.some((job) => job.id === current) ? current : (page.items[0]?.id ?? ""));
+      setSelectedId((current) => page.items.some((job) => job.id === current) ? current : (page.items[0]?.id ?? null));
     }).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof ApiError ? reason.message : "无法加载岗位数据。"); }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
   }, [filters]);
 
   useEffect(() => {
-    if (!selectedId) { setDetail(undefined); return; }
+    if (selectedId === null) { setDetail(undefined); return; }
     const controller = new AbortController();
     getJob(selectedId, controller.signal).then(setDetail).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof ApiError ? reason.message : "无法加载岗位详情。"); });
     return () => controller.abort();
