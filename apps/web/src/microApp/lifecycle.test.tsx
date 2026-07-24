@@ -19,4 +19,19 @@ describe("micro-app child runtime", () => {
     expect(normalizeAppPath("/recruitment/ops/review", "/recruitment")).toBe("/ops/review");
     expect(normalizeAppPath("/recruitment", "/recruitment")).toBe("/");
   });
+
+  it("mounts and unmounts a nested-base child without leaving a root", () => {
+    window.__MICRO_APP_BASE_ROUTE__ = "/host/recruitment";
+    window.history.replaceState({}, "", "/host/recruitment");
+    const container = document.createElement("div");
+    document.body.append(container);
+
+    mount(container);
+    expect(container.querySelector(".app-shell")).not.toBeNull();
+    unmount();
+    expect(container.innerHTML).toBe("");
+
+    container.remove();
+    delete window.__MICRO_APP_BASE_ROUTE__;
+  });
 });

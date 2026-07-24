@@ -48,6 +48,7 @@ button, .button-link {
 button:hover, .button-link:hover { background: #2a303a; }
 .secondary-button { background: var(--surface); border-color: var(--border); color: var(--ink); }
 .secondary-button:hover { background: var(--surface-soft); }
+.icon-button { min-width: 34px; padding: 7px; }
 
 .app-shell {
   background: var(--canvas);
@@ -235,6 +236,10 @@ h3 { color: #333b47; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
   font-size: 11px;
   line-height: 1.35;
   padding: 7px 8px;
+}
+.metadata-grid a {
+  background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px;
+  color: #2750b8; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; padding: 7px 8px;
 }
 
 .stack-list, .source-list, .task-list {

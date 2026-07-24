@@ -1,29 +1,6 @@
-import type { Job, ReviewItem } from "../api/client";
-import { JobTable } from "../features/jobs/JobTable";
+import { useEffect, useState } from "react";
+import { ApiError, listReviewItems, reviewAction } from "../api/client";
+import type { ReviewItem } from "../api/client";
 import { PageHeader } from "../features/layout/PageHeader";
 import { ReviewQueue } from "../features/review/ReviewQueue";
-
-type OpsReviewPageProps = {
-  jobs: Job[];
-  onSelectJob: (jobId: string) => void;
-  reviewQueue: ReviewItem[];
-  selectedJobId: string;
-};
-
-export function OpsReviewPage({ jobs, onSelectJob, reviewQueue, selectedJobId }: OpsReviewPageProps) {
-  const pendingReviewJobs = jobs.filter((job) => job.reviewStatus === "待复核");
-
-  return (
-    <main className="workbench">
-      <PageHeader
-        title="岗位复核"
-        description="处理高优先级岗位、来源可信度和候选人条件匹配的人工判断。"
-      />
-
-      <div className="ops-grid">
-        <ReviewQueue items={reviewQueue} />
-        <JobTable jobs={pendingReviewJobs} selectedJobId={selectedJobId} onSelectJob={onSelectJob} />
-      </div>
-    </main>
-  );
-}
+export function OpsReviewPage() { const [items, setItems] = useState<ReviewItem[]>([]); const [error, setError] = useState<string>(); useEffect(() => { const controller = new AbortController(); listReviewItems(controller.signal).then(setItems).catch((reason: unknown) => { if (!controller.signal.aborted) setError(reason instanceof ApiError ? reason.message : "无法加载复核队列。"); }); return () => controller.abort(); }, []); const act = async (id: string, action: "approve" | "reject" | "block") => { try { await reviewAction(id, action, action === "reject" ? { reason: "operator_rejected" } : {}); setItems((current) => current.filter((item) => item.id !== id)); } catch (reason) { setError(reason instanceof ApiError ? reason.message : "复核操作失败。"); } }; return <main className="workbench"><PageHeader title="岗位复核" description="核对来源、字段和岗位变更后再发布。" />{error ? <section className="panel state-panel" role="alert">{error}</section> : null}<div className="ops-grid single-column"><ReviewQueue items={items} onAction={act} /></div></main>; }
