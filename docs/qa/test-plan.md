@@ -9,18 +9,24 @@ Implementation follows TDD for production code. Documentation and root config bo
 - Compute dedupe keys.
 - Detect changed snapshots.
 - Block manual-only, login-required, captcha-required, forbidden, disabled, and unknown sources.
-- Approve, reject, and merge review items.
+- Validate URL scheme, origin, redirects, limits, and robots decisions before fetch.
+- Approve, reject, and block review items.
 - Validate manual item required fields.
+- Render the canonical Markdown field order.
 
 ## Integration Coverage
 
-- Crawl task creates review items for new jobs.
+- JSON and HTML fixture sources create review items for new jobs.
+- Robots denial, login redirect, and `401`, `403`, or `429` stop collection.
 - Partial source failure does not fail the whole task.
 - Review approval writes jobs and snapshots.
-- Merge updates an existing job and logs the action.
+- Changed content updates an existing job through review and logs the action.
+- Unchanged reruns and repeated approval are idempotent.
 - Manual item create, list, and update works.
 - SQLite persists after restart.
 - Job filters, sorting, and pagination return expected records.
+- Daily runs do not overlap in one process.
+- Excel exports are read back with the expected headers and values.
 
 ## E2E Coverage
 
@@ -29,7 +35,25 @@ Implementation follows TDD for production code. Documentation and root config bo
 - User creates a manual-only platform record and no automatic collection is triggered.
 - User disables a source and collection skips it.
 - User opens a job detail page and sees snapshots, tech stack, certificates, and application information.
+- User filters jobs, refreshes, and retains the same URL-backed result.
+- User configures and tests a source without publishing candidates.
+- User downloads Markdown and Excel for the current filters.
+- Embedded-base mount/unmount works without page overflow on desktop and mobile.
 
-## Documentation Verification
+## Interface Coverage
 
-Run the placeholder scan against docs and root config before committing documentation baseline changes.
+- REST, CLI, and MCP search return the same records for the same filters.
+- CLI run-source uses the same policy and collection service as REST.
+- MCP initialization, tool listing, and one `search_jobs` call succeed over STDIO.
+- MCP tool listing contains only the documented allowlist.
+
+## Verification Order
+
+1. Run focused unit tests while implementing each behavior.
+2. Run Java integration tests with temporary SQLite and local HTTP fixtures.
+3. Run frontend unit tests and type checks.
+4. Run REST, CLI, MCP, and export smoke checks.
+5. Run Playwright against the real Java backend.
+6. Perform desktop and mobile screenshot review for hierarchy, overlap, clipping,
+   empty/error states, and table readability.
+7. Run the full clean build before final acceptance.

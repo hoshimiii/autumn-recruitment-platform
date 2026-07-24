@@ -1,39 +1,80 @@
 # API Contracts
 
+All endpoints use `/api/v1`. Errors use:
+
+```json
+{
+  "error": {
+    "code": "stable_machine_code",
+    "message": "Human readable message",
+    "details": {}
+  }
+}
+```
+
 ## Jobs
 
-`GET /api/jobs` lists approved jobs with filters for keyword, company type, company, job family, job type, city, tech stack, certificate or qualification, deadline status, source trust level, application status, and review status.
+`GET /api/v1/jobs` lists published jobs.
 
-Response includes `items`, `page`, `pageSize`, and `total`.
+Filters: `keyword`, `companyCategory`, `company`, `jobType`, `city`,
+`techStack`, `certificate`, `deadlineFrom`, `deadlineTo`, `sourceTrust`,
+`changedSince`, `page`, `pageSize`, and `sort`.
 
-`GET /api/jobs/:id` returns a job detail record with identity fields, JD, requirements, tech stack, certificate requirements, education, major, language, salary, application method, source URLs, login and captcha flags, resume format, custom questions, snapshots, change history, review history, and application timeline.
+Response: `items`, `page`, `pageSize`, and `total`.
+
+`GET /api/v1/jobs/{id}` returns the standard job template plus source evidence
+and snapshot history.
 
 ## Sources
 
-`GET /api/sources` lists configured sources with compliance status, adapter type, enabled state, frequency, last run time, and last status.
+`GET /api/v1/sources` lists configured sources.
 
-Collection mutations only operate on sources allowed by source policy.
+`POST /api/v1/sources` creates a source.
+
+`PUT /api/v1/sources/{id}` updates a source and increments its config version.
+
+`POST /api/v1/sources/{id}/test` validates policy and extraction without
+persisting candidates.
+
+`POST /api/v1/sources/{id}/runs` starts one bounded collection run.
+
+Secret fields accept only environment-variable references and are never returned.
 
 ## Crawl Tasks
 
-`GET /api/tasks` lists task runs with trigger type, status, started time, finished time, discovered count, review item count, error count, and error summary.
+`GET /api/v1/runs` lists source and daily workflow runs.
 
-Task creation validates source policy before invoking adapters.
+`POST /api/v1/runs/daily` starts a non-overlapping daily run.
 
 ## Review Items
 
-`GET /api/review-items` lists candidates and changes pending review.
+`GET /api/v1/review-items` lists candidates and changed jobs.
 
-Review actions support approve as new job, merge into existing job, reject, mark needs manual follow-up, and edit normalized fields before approval. Each action writes an audit log.
+`GET /api/v1/review-items/{id}` returns candidate, normalized fields, source
+evidence, and duplicate hints.
+
+`POST /api/v1/review-items/{id}/approve` accepts optional edited normalized fields.
+
+`POST /api/v1/review-items/{id}/reject` requires a reason.
+
+`POST /api/v1/review-items/{id}/block` records a manual follow-up reason.
 
 ## Manual Items
 
-`GET /api/manual-items` lists manual-only records.
+`GET /api/v1/manual-items` lists manual-only records.
 
-`POST /api/manual-items` creates a manual action record with platform, company, job title or keywords, source URL, tech stack keywords, certificate notes, required action, login flag, captcha flag, application method, reminder time, priority, status, and notes.
+`POST /api/v1/manual-items` creates a record without triggering collection.
 
-Manual item creation does not trigger collection.
+## Exports
 
-## Error Shape
+`GET /api/v1/exports/jobs.md` returns Markdown for the current job filters.
 
-API errors return a typed JSON body containing an error code, message, and optional details. Policy-blocked collection returns a code matching the source policy reason.
+`GET /api/v1/exports/jobs.xlsx` returns an Excel workbook for the same filters.
+
+The column order is identical across REST export metadata, Markdown, Excel, CLI,
+and MCP.
+
+## Health
+
+`GET /api/v1/health` reports application, database, and scheduler readiness
+without exposing configuration secrets.

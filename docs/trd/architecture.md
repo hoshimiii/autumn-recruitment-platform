@@ -2,29 +2,143 @@
 
 ## Runtime Shape
 
-The application is a local-first TypeScript monorepo with separate apps and packages:
+The repository remains a small monorepo:
 
-- API app for HTTP routes, request validation, and service composition.
-- Web app for the operational workbench.
-- Domain package for source policy, job normalization, review decisions, deduplication, scoring, and manual item rules.
-- Database package for SQLite connection, migrations, and repositories.
+```text
+apps/
+  web/       React and TypeScript micro-frontend
+  server/    Java 17 and Spring Boot backend
+tests/
+  e2e/       Browser workflow acceptance
+docs/        Product, technical, compliance, and test contracts
+```
+
+The old Node API and TypeScript DB/domain packages stay only until their Java
+replacement passes integration acceptance.
+
+## Technology Decisions
+
+- Java 17 and Spring Boot 3.5.x: installed runtime compatibility and maintained
+  Java 17 support.
+- Spring Web and Bean Validation: REST and trust-boundary validation.
+- Spring JDBC: explicit SQL and predictable SQLite behavior.
+- Flyway: ordered schema migrations.
+- Xerial SQLite JDBC: local persistence.
+- JDK `HttpClient`: bounded requests, timeouts, redirects, and conditional headers.
+- jsoup: static HTML extraction with configured CSS selectors.
+- Apache POI: `.xlsx` export.
+- Official MCP Java SDK: local STDIO server.
+- React, TypeScript, and Vite: preserve the current micro-frontend runtime.
+
+No distributed queue, ORM, browser crawler, or required LLM is introduced.
+
+## Module Boundaries
+
+### Backend
+
+- `domain`: records, enums, normalization, dedupe keys, and policy decisions.
+- `application`: job query, collection, review, export, and source services.
+- `infrastructure`: SQLite repositories, HTTP fetcher, robots checks, adapters,
+  scheduler, MCP transport, and filesystem export.
+- `web`: REST DTOs, validation, and typed error mapping.
+- `cli`: command parsing that calls application services.
+
+Domain and application code do not depend on REST, CLI, or MCP transports.
+
+### Frontend
+
+- `app`: shell, route ownership, providers, and micro-frontend lifecycle.
+- `features/jobs`: filters, table, details, and export selection.
+- `features/operations`: sources, runs, review, and agent settings.
+- `api`: generated or handwritten typed DTOs and request functions.
+- `shared`: small reusable controls and formatters.
 
 ## Data Flow
 
-1. A user enables or configures whitelist sources.
-2. A one-shot or scheduled task loads enabled sources.
-3. Source policy blocks disabled, manual-only, forbidden, login-required, captcha-required, and unknown sources.
-4. The adapter for each allowed source collects bounded source data and attachments.
-5. The system stores snapshots and normalized candidate payloads.
-6. Deduplication compares canonical URL, content hash, business key, and similarity hints.
-7. New or changed candidates enter review.
-8. Review actions approve, merge, reject, or mark candidates for manual follow-up.
-9. Approved jobs appear in the workbench and detail views.
+```text
+configured source
+  -> policy and URL validation
+  -> robots check
+  -> bounded fetch
+  -> JSON or HTML adapter
+  -> normalization and content hash
+  -> snapshot and dedupe
+  -> review candidate
+  -> approve/reject/manual
+  -> published job
+  -> REST / CLI / MCP / MD / XLSX
+```
 
-## Failure Isolation
+## Collection Contract
 
-Each source task records its own status, counts, and errors. A failed source does not block other sources in the same collection run.
+- Only `http` and `https` URLs are accepted.
+- Every request must remain on the configured source origin unless an explicit
+  allowed-origin entry exists.
+- Redirects to login, captcha, or unapproved origins are blocked.
+- Default per-origin interval is at least five seconds.
+- `401`, `403`, and `429` stop the source run without evasion.
+- Robots denial or unconfirmed terms state blocks automated collection.
+- List page and item limits are configured and enforced before requests.
+- Every run receives its own status and error summary.
 
-## Auditability
+Adapters receive fetched content; they cannot perform arbitrary network requests.
 
-Source snapshots, parsed payloads, attachment paths, review actions, and state transitions are stored so users can trace approved job records back to original source material.
+## Review and Publication Contract
+
+Candidate states:
+
+```text
+DISCOVERED -> PENDING_REVIEW -> PUBLISHED
+                          \-> REJECTED
+                          \-> BLOCKED
+                          \-> PARSE_FAILED
+```
+
+- Missing company, title, source URL, or source trust cannot auto-publish.
+- The first release routes all new candidates through review.
+- Approval is idempotent and writes job, snapshot, and audit records atomically.
+- Changed content creates a new snapshot and review candidate, not a duplicate job.
+
+## Interface Contract
+
+REST is the external data contract. CLI and MCP adapt the same application result
+objects; they do not call REST over localhost.
+
+MCP allowlist:
+
+- `search_jobs`
+- `get_job`
+- `run_configured_source`
+- `export_jobs`
+
+No arbitrary URL fetch, shell command, credential, or resume submission tool is
+exposed.
+
+## Micro-Frontend Contract
+
+- The bundle exports `mount(container, options?)` and `unmount()`.
+- Standalone mode mounts automatically.
+- Embedded mode reads the host-provided base route and does not own host navigation.
+- Mount/unmount is repeatable and removes React roots and listeners.
+- API base URL is runtime-configurable by host data or environment.
+
+## Failure Isolation and Audit
+
+- Scheduler prevents overlapping daily runs in one process.
+- Each source is collected independently; one failure never aborts the batch.
+- Raw snapshots are bounded and retained only for configured traceability.
+- Source, run, candidate, review, publication, and export events are auditable.
+- Secrets are referenced by environment-variable name and never returned by APIs.
+
+## Deployment Shape
+
+Local delivery uses two processes and one SQLite file:
+
+```text
+web:    Vite development server or static assets
+server: executable Spring Boot jar
+db:     ./data/recruitment.sqlite
+```
+
+Free cloud deployment is optional and deferred until local acceptance. SQLite is
+not used for horizontally scaled deployments.
