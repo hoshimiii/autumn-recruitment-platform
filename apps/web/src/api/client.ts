@@ -51,13 +51,14 @@ export const emptyJobFilters: JobFilters = {
 export type JobPage = { items: Job[]; page: number; pageSize: number; total: number };
 export type Source = {
   id: EntityId; name: string; type: string; baseUrl: string; adapterType: string; mode: "JSON" | "HTML" | "MANUAL";
-  trustLevel: string; companyCategory: string; enabled: boolean; cron: string; timezone: string; minIntervalSeconds: number;
-  maxPages: number; selectors?: string; fieldMapping?: string; robotsUrl?: string; termsUrl?: string;
-  complianceStatus: string; lastRunAt?: string; lastStatus?: string; aiEnabled: boolean; aiProvider?: string; aiModel?: string;
-  aiSecretRef?: string;
+  listUrl: string; trustLevel: string; companyCategory: string; enabled: boolean; cron: string; timezone: string;
+  minIntervalSeconds: number; maxPages: number; maxItems: number; selectors?: string; fieldMapping?: string;
+  robotsUrl?: string; termsUrl?: string; termsConfirmedAt?: string; timeoutSeconds: number; etag?: string;
+  lastModified?: string; complianceStatus: string; lastRunAt?: string; lastStatus?: string; aiEnabled: boolean;
+  aiProvider?: string; aiModel?: string; configVersion: number;
 };
 
-export type SourceInput = Omit<Source, "id" | "lastRunAt" | "lastStatus">;
+export type SourceInput = Omit<Source, "id" | "etag" | "lastModified" | "lastRunAt" | "lastStatus" | "configVersion"> & { secretEnvRef?: string };
 export type ReviewItem = { id: EntityId; companyName: string; title: string; reason?: string; confidence?: number; status: string; sourceName?: string; createdAt?: string };
 export type Run = { id: EntityId; sourceName?: string; triggerType: string; status: string; startedAt?: string; finishedAt?: string; discoveredCount: number; reviewItemCount: number; errorCount: number; errorSummary?: string };
 export type ManualActionInput = { platform: string; companyName: string; jobTitle?: string; searchKeywords?: string[]; sourceUrl?: string; techStackKeywords?: string[]; certificateNotes?: string; requiredAction: string; requiresLogin?: boolean; requiresCaptcha?: boolean; applyMethod?: string; reminderAt?: string; priority?: number; status?: string; notes?: string };
@@ -92,6 +93,10 @@ export function listJobs(filters: JobFilters, signal: AbortSignal): Promise<JobP
 export function getJob(id: EntityId, signal: AbortSignal): Promise<Job> { return request<Job>(`/jobs/${encodeURIComponent(String(id))}`, { signal }); }
 export function listSources(signal: AbortSignal): Promise<Source[]> { return request<Source[] | { items: Source[] }>("/sources", { signal }).then(list); }
 export function createSource(input: SourceInput): Promise<Source> { return request<Source>("/sources", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); }
+export function updateSource(id: EntityId, input: SourceInput): Promise<Source> { return request<Source>(`/sources/${encodeURIComponent(String(id))}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); }
+export function deleteSource(id: EntityId): Promise<void> { return request<void>(`/sources/${encodeURIComponent(String(id))}`, { method: "DELETE" }); }
+export function testSource(id: EntityId): Promise<Run> { return request<Run>(`/sources/${encodeURIComponent(String(id))}/test`, { method: "POST" }); }
+export function runSource(id: EntityId): Promise<Run> { return request<Run>(`/sources/${encodeURIComponent(String(id))}/runs`, { method: "POST" }); }
 export function listReviewItems(signal: AbortSignal): Promise<ReviewItem[]> { return request<ReviewItem[] | { items: ReviewItem[] }>("/review-items", { signal }).then(list); }
 export function reviewAction(id: EntityId, action: "approve" | "reject" | "block", body: Record<string, unknown> = {}): Promise<void> { return request<void>(`/review-items/${encodeURIComponent(String(id))}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); }
 export function listRuns(signal: AbortSignal): Promise<Run[]> { return request<Run[] | { items: Run[] }>("/runs", { signal }).then(list); }

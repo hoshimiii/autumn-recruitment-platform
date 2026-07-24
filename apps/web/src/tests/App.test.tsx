@@ -15,6 +15,17 @@ const job = {
   applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92, snapshots: []
 };
 
+const source = {
+  id: 11, name: "示例招聘官网", type: "COMPANY", baseUrl: "https://jobs.example",
+  listUrl: "https://jobs.example/api/jobs", adapterType: "JSON", mode: "JSON",
+  complianceStatus: "ALLOWED", trustLevel: "P1", companyCategory: "INTERNET_BIG_TECH",
+  enabled: false, cron: "0 0 8 * * *", timezone: "Asia/Shanghai", minIntervalSeconds: 5,
+  maxPages: 2, maxItems: 30, selectors: "{}", fieldMapping: "{}", termsUrl: "https://jobs.example/terms",
+  termsConfirmedAt: "2026-07-25T00:00:00Z", robotsUrl: "https://jobs.example/robots.txt", timeoutSeconds: 15,
+  etag: "etag-1", lastModified: "Fri, 25 Jul 2026 00:00:00 GMT", lastRunAt: undefined,
+  lastStatus: undefined, aiEnabled: false, aiProvider: undefined, aiModel: undefined, configVersion: 3
+};
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
@@ -22,7 +33,7 @@ function json(body: unknown, status = 200): Response {
 function mockApi(overrides: Record<string, Response> = {}, reviewItems: unknown[] = []) {
   return vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     const url = String(input);
-    if (overrides[url]) return Promise.resolve(overrides[url]);
+    if (overrides[`${init?.method ?? "GET"} ${url}`] ?? overrides[url]) return Promise.resolve(overrides[`${init?.method ?? "GET"} ${url}`] ?? overrides[url]);
     if (url.includes("/jobs/101")) return Promise.resolve(json(job));
     if (url.includes("/jobs")) return Promise.resolve(json({ items: [job], page: 1, pageSize: 50, total: 1 }));
     if (url.includes("/sources")) return Promise.resolve(json([]));
@@ -94,6 +105,8 @@ describe("API-driven micro frontend", () => {
     fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
     fireEvent.change(screen.getByLabelText("来源名称"), { target: { value: "官网" } });
     fireEvent.change(screen.getByLabelText("官网 URL"), { target: { value: "https://jobs.example" } });
+    fireEvent.change(screen.getByLabelText("列表 URL"), { target: { value: "https://jobs.example/jobs" } });
+    fireEvent.change(screen.getByLabelText("企业分类"), { target: { value: "INTERNET_BIG_TECH" } });
     fireEvent.click(screen.getByLabelText("启用 AI"));
     fireEvent.change(screen.getByLabelText("密钥环境变量引用"), { target: { value: "plain-token" } });
     fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
@@ -111,12 +124,103 @@ describe("API-driven micro frontend", () => {
     expect(screen.getByLabelText("启用来源")).not.toBeChecked();
     fireEvent.change(screen.getByLabelText("来源名称"), { target: { value: "待确认官网" } });
     fireEvent.change(screen.getByLabelText("官网 URL"), { target: { value: "https://jobs.example" } });
+    fireEvent.change(screen.getByLabelText("列表 URL"), { target: { value: "https://jobs.example/jobs" } });
+    fireEvent.change(screen.getByLabelText("企业分类"), { target: { value: "INTERNET_BIG_TECH" } });
     fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       "/api/v1/sources",
       expect.objectContaining({ method: "POST", body: expect.stringContaining('"enabled":false') })
     ));
+  });
+
+  it("sends the Java source DTO and converts confirmed terms time to ISO", async () => {
+    const fetchMock = mockApi({ "POST /api/v1/sources": json({ ...source, id: 12 }, 201) });
+    window.history.replaceState({}, "", "/ops/config");
+    render(<App />);
+    await screen.findByRole("heading", { name: "来源配置" });
+
+    fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
+    fireEvent.change(screen.getByLabelText("来源名称"), { target: { value: "腾讯招聘" } });
+    fireEvent.change(screen.getByLabelText("官网 URL"), { target: { value: "https://careers.example" } });
+    fireEvent.change(screen.getByLabelText("列表 URL"), { target: { value: "https://careers.example/jobs" } });
+    fireEvent.change(screen.getByLabelText("企业分类"), { target: { value: "INTERNET_BIG_TECH" } });
+    fireEvent.change(screen.getByLabelText("最大条目数"), { target: { value: "42" } });
+    fireEvent.change(screen.getByLabelText("条款确认时间"), { target: { value: "2026-07-25T08:30" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/sources",
+      expect.objectContaining({ method: "POST", body: expect.stringContaining('"listUrl":"https://careers.example/jobs"') })
+    ));
+    const body = JSON.parse(String(fetchMock.mock.calls.find(([, init]) => init?.method === "POST")?.[1]?.body));
+    expect(body).toMatchObject({ maxItems: 42, enabled: false, complianceStatus: "UNKNOWN" });
+    expect(body.termsConfirmedAt).toMatch(/Z$/u);
+    expect(body).not.toHaveProperty("aiSecretRef");
+  });
+
+  it("only permits enablement after allowed policy and confirmed terms", async () => {
+    mockApi();
+    window.history.replaceState({}, "", "/ops/config");
+    render(<App />);
+    await screen.findByRole("heading", { name: "来源配置" });
+    fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
+
+    expect(screen.getByLabelText("启用来源")).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("合规状态"), { target: { value: "ALLOWED" } });
+    fireEvent.change(screen.getByLabelText("条款确认时间"), { target: { value: "2026-07-25T08:30" } });
+    expect(screen.getByLabelText("启用来源")).toBeEnabled();
+  });
+
+  it("does not require parser JSON for manual sources", async () => {
+    mockApi();
+    window.history.replaceState({}, "", "/ops/config");
+    render(<App />);
+    await screen.findByRole("heading", { name: "来源配置" });
+    fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
+    fireEvent.change(screen.getByLabelText("采集模式"), { target: { value: "MANUAL" } });
+    expect(screen.queryByLabelText("Selectors")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("字段映射")).not.toBeInTheDocument();
+  });
+
+  it("calls test, run, update and delete source endpoints", async () => {
+    const fetchMock = mockApi({
+      "/api/v1/sources": json([source]),
+      "POST /api/v1/sources/11/test": json({ id: 1, status: "SUCCESS" }),
+      "POST /api/v1/sources/11/runs": json({ id: 2, status: "SUCCESS" }),
+      "PUT /api/v1/sources/11": json(source),
+      "DELETE /api/v1/sources/11": new Response(null, { status: 204 })
+    });
+    window.history.replaceState({}, "", "/ops/config");
+    render(<App />);
+    expect(await screen.findByText("示例招聘官网")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "测试来源 示例招聘官网" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/sources/11/test", expect.objectContaining({ method: "POST" })
+    ));
+    fireEvent.click(screen.getByRole("button", { name: "运行来源 示例招聘官网" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/sources/11/runs", expect.objectContaining({ method: "POST" })
+    ));
+    fireEvent.click(screen.getByRole("button", { name: "编辑来源 示例招聘官网" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/sources/11", expect.objectContaining({ method: "PUT" })
+    ));
+    fireEvent.click(screen.getByRole("button", { name: "删除来源 示例招聘官网" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      "/api/v1/sources/11", expect.objectContaining({ method: "DELETE" })
+    ));
+  });
+
+  it("shows source action API errors", async () => {
+    mockApi({ "/api/v1/sources": json([source]), "/api/v1/sources/11/test": json({ error: { message: "条款尚未确认" } }, 422) });
+    window.history.replaceState({}, "", "/ops/config");
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "测试来源 示例招聘官网" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("条款尚未确认");
   });
 
   it("sends a non-empty reason when blocking a numeric review item", async () => {
