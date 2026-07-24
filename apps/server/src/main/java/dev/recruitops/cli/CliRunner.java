@@ -3,6 +3,7 @@ package dev.recruitops.cli;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.recruitops.application.JobExportService;
 import dev.recruitops.application.JobService;
+import dev.recruitops.application.CollectionWorkflow;
 import dev.recruitops.infrastructure.JobRepository;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -21,10 +22,11 @@ public class CliRunner {
       "techStack", "certificate", "deadlineFrom", "deadlineTo", "sourceTrust", "changedSince");
   private final JobService jobs;
   private final JobExportService exports;
+  private final CollectionWorkflow workflow;
   private final ObjectMapper json;
 
-  public CliRunner(JobService jobs, JobExportService exports, ObjectMapper json) {
-    this.jobs = jobs; this.exports = exports; this.json = json;
+  public CliRunner(JobService jobs, JobExportService exports, CollectionWorkflow workflow, ObjectMapper json) {
+    this.jobs = jobs; this.exports = exports; this.workflow = workflow; this.json = json;
   }
 
   public int run(String[] args, OutputStream stdout, OutputStream stderr) {
@@ -35,6 +37,7 @@ public class CliRunner {
         case "search" -> search(options, stdout);
         case "get" -> get(options, stdout);
         case "export" -> export(options, stdout);
+        case "run-source" -> runSource(options, stdout);
         default -> throw new IllegalArgumentException("Unknown CLI command: " + args[0]);
       };
     } catch (IllegalArgumentException error) {
@@ -70,6 +73,13 @@ public class CliRunner {
     };
     Files.write(output, content);
     write(stdout, json.writeValueAsString(Map.of("output", output.toAbsolutePath().toString(), "format", format)));
+    return 0;
+  }
+
+  private int runSource(Map<String, String> options, OutputStream stdout) throws IOException {
+    requireOnly(options, Set.of("id"));
+    try { write(stdout, json.writeValueAsString(workflow.runSource(Long.parseLong(required(options, "id"))))); }
+    catch (NumberFormatException error) { throw new IllegalArgumentException("--id must be a number"); }
     return 0;
   }
 

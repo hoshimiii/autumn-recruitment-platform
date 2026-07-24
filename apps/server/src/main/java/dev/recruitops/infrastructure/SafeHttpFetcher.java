@@ -19,13 +19,16 @@ public class SafeHttpFetcher {
   static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
   private final HttpClient client;
   private final RequestPacer pacer;
+  private final AddressPolicy addresses;
   private final String userAgent;
 
   public SafeHttpFetcher(
       RequestPacer pacer,
+      AddressPolicy addresses,
       @Value("${recruitops.collector.user-agent:AutumnRecruitmentBot/1.0}") String userAgent,
       @Value("${recruitops.collector.connect-timeout-seconds:10}") long connectTimeoutSeconds) {
     this.pacer = pacer;
+    this.addresses = addresses;
     this.userAgent = userAgent;
     this.client = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(Math.max(1, connectTimeoutSeconds)))
@@ -40,6 +43,7 @@ public class SafeHttpFetcher {
     int redirects = 0;
     while (true) {
       requireRequestUri(base, current);
+      addresses.requirePublic(current);
       pacer.await(source, current, robotsDelayMillis);
       HttpResponse<InputStream> response = send(source, current, conditional && redirects == 0);
       int status = response.statusCode();

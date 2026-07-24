@@ -14,7 +14,7 @@ public class SourcePolicy {
     }
     if (blank(source.termsConfirmedAt())) throw CollectionException.blocked("terms_unconfirmed");
     URI base = valid("base_url", source.baseUrl());
-    URI list = valid("list_url", source.listUrl());
+    URI list = valid("list_url", source.listUrl().replace("{page}", "1"));
     if (!sameOrigin(base, list)) throw CollectionException.blocked("list_url_origin_not_allowed");
     if (accessBarrier(list)) throw CollectionException.blocked("login_or_captcha_url");
     if (!blank(source.robotsUrl())

@@ -97,9 +97,24 @@ class InterfaceContractTest {
   }
 
   @Test
+  void cliAndMcpRunOnlyConfiguredSources() {
+    long sourceId = insertSourceForCollection();
+    ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+    int exit = cli.run(new String[] {"run-source", "--id", Long.toString(sourceId)}, stdout,
+        new ByteArrayOutputStream());
+
+    assertEquals(0, exit);
+    assertTrue(stdout.toString().contains("\"sourceId\":" + sourceId));
+    assertEquals(List.of("search_jobs", "get_job", "export_jobs", "run_configured_source"),
+        mcpTools.toolNames());
+    assertTrue(mcpTools.runSourceJson(java.util.Map.of("sourceId", sourceId))
+        .contains("\"sourceId\":" + sourceId));
+  }
+
+  @Test
   void mcpRegistersOnlySafeToolsAndSearchReturnsJobServiceData() {
     insertJob("Acme", "Java Developer", "Shanghai", "Java", "CET-6");
-    assertEquals(List.of("search_jobs", "get_job", "export_jobs"), mcpTools.toolNames());
+    assertEquals(List.of("search_jobs", "get_job", "export_jobs", "run_configured_source"), mcpTools.toolNames());
     assertTrue(mcpTools.searchJson(java.util.Map.of("city", "Shanghai")).contains("Acme"));
     McpSchema.CallToolResult result = mcpTools.tools().get(0).callHandler().apply(null,
         new McpSchema.CallToolRequest("search_jobs", java.util.Map.of("city", "Shanghai")));
@@ -124,6 +139,16 @@ class InterfaceContractTest {
     jdbc.update("""
         INSERT INTO review_items (source_id, candidate_payload, normalized_payload, dedupe_key, confidence, status, published_job_id)
         VALUES (?, '{}', '{}', ?, 0.95, 'PUBLISHED', ?)""", sourceId, company + "-review", jobId);
+  }
+
+  private long insertSourceForCollection() {
+    jdbc.update("""
+        INSERT INTO sources (name, type, base_url, list_url, adapter_type, mode, compliance_status,
+        trust_level, scope, enabled, terms_confirmed_at)
+        VALUES ('Disabled configured source', 'COMPANY', 'https://careers.example.com',
+        'https://careers.example.com/jobs', 'JSON', 'JSON', 'ALLOWED', 'OFFICIAL', 'INTERNET', 0,
+        '2026-07-25T00:00:00Z')""");
+    return jdbc.queryForObject("SELECT last_insert_rowid()", Long.class);
   }
 
   private String jsonArray(String value) { return value.isBlank() ? "[]" : "[\"" + value + "\"]"; }
