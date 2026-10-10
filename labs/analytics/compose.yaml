@@ -1,0 +1,20 @@
+services:
+  zookeeper:
+    image: zookeeper:3.9.6-jre-17@sha256:d0ae1665a1e85022261dc05a10e030c83895060401cd5c1bf990ed6b4d38c31b
+    environment:
+      ZOO_4LW_COMMANDS_WHITELIST: ruok
+    mem_limit: 256m
+    cpus: 0.50
+    restart: "no"
+
+  lab:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      zookeeper:
+        condition: service_started
+    init: true
+    mem_limit: 2g
+    cpus: 2.0
+    restart: "no"

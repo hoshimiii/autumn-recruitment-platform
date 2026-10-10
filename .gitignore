@@ -10,6 +10,7 @@ output/
 test-results/
 playwright-report/
 /apps/server/target/
+/labs/analytics/target/
 *.log
 *.sqlite
 *.sqlite-shm

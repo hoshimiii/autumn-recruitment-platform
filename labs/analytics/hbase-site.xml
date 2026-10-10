@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<configuration>
+  <property><name>hbase.cluster.distributed</name><value>true</value></property>
+  <property><name>hbase.rootdir</name><value>file:///lab/state/hbase</value></property>
+  <property><name>hbase.zookeeper.quorum</name><value>zookeeper</value></property>
+  <property><name>hbase.zookeeper.property.clientPort</name><value>2181</value></property>
+  <property><name>hbase.master.info.port</name><value>-1</value></property>
+  <property><name>hbase.regionserver.info.port</name><value>-1</value></property>
+  <property><name>hbase.client.retries.number</name><value>10</value></property>
+  <property><name>hbase.rpc.timeout</name><value>10000</value></property>
+  <property><name>hbase.client.operation.timeout</name><value>20000</value></property>
+</configuration>
