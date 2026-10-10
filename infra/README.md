@@ -63,3 +63,39 @@ docker compose -f infra/compose.yml --profile sso down
 This command removes only the named demo project's containers/network. It does
 not stop unrelated services. Docker daemon availability, image startup, imported
 provider claims and real Redis/ES behavior require separate runtime acceptance.
+
+## Repeatable runtime acceptance
+
+Build the application JAR, start only the disposable Redis/ES services as above,
+then run from the repository root:
+
+```powershell
+node scripts/middleware-smoke.mjs
+docker compose -f infra/compose.yml --profile sso down
+```
+
+The smoke uses a new in-memory SQL dataset, a synthetic loopback JSON source and
+an owned Java process on port 18189. It collects and approves one job, proves an
+actual Redis cache hit and invalidation of the same query after an update,
+exercises ES fuzzy matching and versioned updates, then
+stops those two demo services and asserts SQL outage fallback. It intentionally
+leaves them stopped; the final Compose `down` removes their containers/network.
+Do not run it against a demo stack shared by another application. No operational
+database, real source, provider key or paid model is used. Server diagnostics go
+to ignored `output/runtime/middleware-server.log`.
+
+After removing the cache/search demo, run the separate provider acceptance:
+
+```powershell
+node scripts/oidc-runtime-smoke.mjs
+```
+
+This starts only Keycloak in a fresh uniquely named Compose project, generates
+temporary users and credentials in memory, and starts an owned in-memory Java
+backend on port 18189. It tests authorization-code login for all four roles,
+session CSRF gates, an actual collector bearer token and backend-session logout.
+It removes its owned JVM, provider container and network even after a failed
+assertion. No credential/token values are persisted or printed. This validates
+HTTP authorization-code and backend behavior; browser CORS/SameSite behavior
+needs separate browser acceptance. Run sequentially with the analytics lab to
+keep memory usage bounded. Existing services and occupied ports cause refusal.
