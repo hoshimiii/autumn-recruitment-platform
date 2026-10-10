@@ -16,11 +16,17 @@ All endpoints use `/api/v1`. Errors use:
 
 `GET /api/v1/jobs` lists published jobs.
 
-Filters: `keyword`, `companyCategory`, `company`, `jobType`, `city`,
+Filters: `keyword`, `companyCategory`, `company`, `businessUnit`, `title`, `recruitmentYear`, `jobType`, `city`,
 `techStack`, `certificate`, `deadlineFrom`, `deadlineTo`, `sourceTrust`,
-`changedSince`, `page`, `pageSize`, and `sort`.
+`changedSince`, `page`, and `pageSize`.
 
 Response: `items`, `page`, `pageSize`, and `total`.
+
+`businessUnit` (department), `title` and `recruitmentYear` (graduation cohort)
+are optional exact filters shared by REST, CLI, MCP and exports. Blank values
+omit the predicate; a present department/cohort filter excludes unknown values.
+Keyword search uses bounded ES fuzzy matching only when the optional projection
+is ready, otherwise literal SQL matching. SQL rechecks all filters and visibility.
 
 `GET /api/v1/jobs/{id}` returns the standard job template plus source evidence
 and snapshot history.
@@ -93,3 +99,46 @@ and MCP.
 
 `GET /api/v1/health` reports application, database, and scheduler readiness
 without exposing configuration secrets.
+
+## Authentication and projections
+
+`GET /api/v1/auth/session` returns `mode`, `authenticated`, trusted `roles`,
+effective `capabilities`, `csrfToken`, `csrfHeader`, `loginUrl` and `logoutUrl`.
+Published job queries, exports, health and this session endpoint allow anonymous
+GET. Local mode trusts the loopback owner; OIDC mode validates its configured
+issuer and audience. Browser sessions use authorization-code login and require
+CSRF for mutations, including `POST /api/v1/auth/logout`. Bearer authentication
+uses a separate stateless chain and always validates the JWT.
+
+COLLECTOR operates source reads/runs, browser tasks and pending manual intake;
+REVIEWER handles review decisions; ADMIN also changes sources/Agent settings,
+approves browser policies and operates projections. Service-level authorization
+also applies to CLI and MCP; OIDC STDIO cannot acquire an implicit ADMIN role.
+
+`GET /api/v1/projections` returns `enabled`, `pending` and `lastError`.
+`POST /api/v1/projections/rebuild` returns `enqueued`, the current SQL jobs queued
+for replay. Both require ADMIN. SQL outbox events are acknowledged only after ES
+refresh, and Redis cache keys include the dataset and SQL generation.
+
+## Browser tasks
+
+`GET /api/v1/browser-tasks` returns `{items:[...]}`. `POST` accepts `sourceId`,
+zero-based `rowStart`, exclusive `rowEnd`, and `maxChars`; ranges and budgets are
+bounded. ADMIN explicitly approves a source's current policy through
+`POST /api/v1/browser-tasks/sources/{id}/approve` with
+`{visibleBrowserApproved:true,adapter:"sub2api"}`. Fixture extraction additionally
+requires the explicit test-only server flag. `POST .../sources/{id}/revoke`
+revokes that policy; source changes invalidate approval.
+
+For a fixed task ID, `POST /{id}/claim` takes `workerId` and returns a current
+lease token. `POST /{id}/check-access`, `/pace`, `/stop`, and `/complete` require
+that worker/token pair. `/check-request` also takes `requestUrl` and checks
+current origin/robots policy before each navigation, redirect or XHR; it does
+not fetch the submitted request URL. `/pace` returns the shared SQL-reserved
+`readAt` timestamp and workers revalidate after waiting.
+
+`/complete` accepts `rows` with visible evidence, source row/item identity,
+capture time and approved source URL. Invalid, expired, revoked or conflicting
+results are rejected transactionally. COMPANY records go to manual follow-up;
+independently evidenced ROLE records go to `PENDING_REVIEW`. Replay does not
+create duplicates and no endpoint automatically publishes extracted rows.

@@ -33,6 +33,13 @@ public class CandidateNormalizer {
         text(raw, "companyType"), source.companyCategory()));
     put(value, "companyName", clean(companyName));
     put(value, "title", clean(title));
+    put(value, "businessUnit", clean(text(raw, "businessUnit")));
+    String cohort = clean(text(raw, "recruitmentYear"));
+    if (!blank(cohort) && !cohort.matches("20\\d{2}")) throw CollectionException.parseFailed("recruitment_year_invalid", null);
+    if (blank(cohort)) value.putNull("recruitmentYear"); else value.put("recruitmentYear", Integer.parseInt(cohort));
+    put(value, "sourceRowId", clean(text(raw, "sourceRowId")));
+    put(value, "itemDiscriminator", clean(text(raw, "itemDiscriminator")));
+    put(value, "officialJobId", clean(text(raw, "officialJobId")));
     put(value, "jobFamily", clean(text(raw, "jobFamily")));
     put(value, "jobType", first(clean(text(raw, "jobType")), "UNKNOWN"));
     put(value, "city", clean(text(raw, "city")));
@@ -48,8 +55,7 @@ public class CandidateNormalizer {
     put(value, "applyMethod", clean(text(raw, "applyMethod")));
     value.put("requiresLogin", bool(raw.get("requiresLogin")));
     value.put("requiresCaptcha", bool(raw.get("requiresCaptcha")));
-    String dedupe = identity(value.path("companyName").asText(), value.path("title").asText(),
-        value.path("city").asText(), sourceUrl);
+    String dedupe = identity(source.id(), value);
     return new DiscoveredCandidate(raw, value, sha256(value.toString()), dedupe, 1.0);
   }
 
@@ -100,8 +106,15 @@ public class CandidateNormalizer {
     if (value == null) node.putNull(field); else node.put(field, value);
   }
 
-  private static String identity(String company, String title, String city, String sourceUrl) {
-    return String.join("|", key(company), key(title), key(city), key(sourceUrl));
+  public static String identity(long sourceId, JsonNode value) {
+    String row = value.path("sourceRowId").asText("");
+    String item = value.path("itemDiscriminator").asText("");
+    if (!blank(row) && !blank(item)) return "row:" + sourceId + ":" + sha256(row + "\n" + item);
+    // Missing row identity uses all conflict-bearing fields; it never performs cross-source merging.
+    return "legacy:" + sourceId + ":" + sha256(String.join("|", key(value.path("companyName").asText()),
+        key(value.path("businessUnit").asText()), key(value.path("title").asText()),
+        key(value.path("recruitmentYear").asText()), key(value.path("city").asText()),
+        key(value.path("officialJobId").asText()), key(value.path("sourceUrl").asText())));
   }
 
   private static String key(String value) {

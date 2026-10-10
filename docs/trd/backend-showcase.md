@@ -9,6 +9,9 @@ No paid model calls, live Feishu collection, public push, or deployment is part 
 development acceptance. A source needs explicit policy approval before collection;
 login, CAPTCHA, 401/403/429, robots denial, copy/export restrictions or a new origin
 stop a browser task. Never bypass an access barrier.
+Browser workers also reject HTTP redirects and require the configured final
+public URL: fulfilling redirected HTML under the original navigation URL would
+corrupt relative resource and location semantics. No redirected target is fetched.
 
 ## Identity and evidence
 
@@ -20,6 +23,10 @@ defines replay identity; normalized content hash distinguishes changed versions.
 Company-level rows go to manual_items. Independently evidenced jobs enter review_items
 as PENDING_REVIEW, never directly PUBLISHED. Preserve visible text, source row ID,
 capture time, source URL, worker/task IDs and immutable extraction evidence.
+Published queries and exports accept optional exact `businessUnit`, `title` and
+`recruitmentYear` filters alongside company. Blank department/cohort filters omit
+that predicate; absent record values are not synthesized or matched as wildcards.
+The same filters reach REST, CLI, MCP and the frontend URL.
 
 ## Authentication and authorization
 
@@ -38,8 +45,8 @@ Expose an auth session/capability contract to React; preserve embedded host rout
 SQLite file databases use WAL and a bounded busy timeout; SQLite still has one writer.
 Use atomic conflict-aware candidate insert, optimistic review state transitions and
 durable task leases/fencing. Do network/model/browser work outside SQL transactions.
-Redis can cache published-query results and coordinate request rate; its absence
-cannot remove SQL constraints or allow expired workers to commit.
+Redis caches published-query results; shared source pacing and task fencing remain
+in SQLite, so Redis absence cannot remove constraints or let expired workers commit.
 ES contains only published-job projections; SQL remains authoritative. Use a durable
 outbox and replay/rebuild, validate indexed hits against SQL status, limit fuzzy search,
 and fall back to SQL if ES is unavailable. Never accept arbitrary query DSL or URL.

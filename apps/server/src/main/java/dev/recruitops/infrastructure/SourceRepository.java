@@ -33,6 +33,7 @@ public class SourceRepository {
         WHERE id=?
         """, status, etag, lastModified, id);
   }
+  @org.springframework.transaction.annotation.Transactional
   public Source create(Source source, String secretEnvRef) {
     jdbc.update("""
         INSERT INTO sources (name,type,base_url,list_url,adapter_type,mode,compliance_status,trust_level,

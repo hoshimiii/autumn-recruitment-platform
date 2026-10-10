@@ -38,6 +38,9 @@ function mockApi(overrides: Record<string, Response> = {}, reviewItems: unknown[
   return vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     const url = String(input);
     if (overrides[`${init?.method ?? "GET"} ${url}`] ?? overrides[url]) return Promise.resolve(overrides[`${init?.method ?? "GET"} ${url}`] ?? overrides[url]);
+    if (url.includes("/auth/session")) return Promise.resolve(json({ mode: "local", authenticated: true,
+      roles: ["ADMIN"], capabilities: ["VIEWER", "COLLECTOR", "REVIEWER", "ADMIN"], csrfToken: "", csrfHeader: "",
+      loginUrl: "", logoutUrl: "" }));
     if (url.includes("/jobs/101")) return Promise.resolve(json(job));
     if (url.includes("/jobs")) return Promise.resolve(json({ items: [job], page: 1, pageSize: 50, total: 1 }));
     if (url.includes("/sources")) return Promise.resolve(json([]));
@@ -117,7 +120,7 @@ describe("API-driven micro frontend", () => {
     window.history.replaceState({}, "", "/ops/config");
     render(<App />);
     expect(await screen.findByRole("heading", { name: "配置中心" })).toBeInTheDocument();
-    expect(screen.getByLabelText("密钥环境变量名")).toHaveValue("SUB2API_KEY");
+    expect(await screen.findByLabelText("密钥环境变量名")).toHaveValue("SUB2API_KEY");
     fireEvent.click(screen.getByLabelText("启用全局 Agent 工作流"));
     fireEvent.change(screen.getByLabelText("密钥环境变量名"), { target: { value: "LOCAL_SUB2API_KEY" } });
     fireEvent.click(screen.getByRole("button", { name: "保存 Agent 设置" }));

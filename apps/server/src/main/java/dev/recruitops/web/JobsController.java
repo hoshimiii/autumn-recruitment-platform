@@ -17,8 +17,10 @@ public class JobsController {
       @RequestParam(required=false) String company, @RequestParam(required=false) String jobType, @RequestParam(required=false) String city,
       @RequestParam(required=false) String techStack, @RequestParam(required=false) String certificate, @RequestParam(required=false) String deadlineFrom,
       @RequestParam(required=false) String deadlineTo, @RequestParam(required=false) String sourceTrust, @RequestParam(required=false) String changedSince,
-      @RequestParam(defaultValue="1") int page, @RequestParam(defaultValue="20") int pageSize) {
-    return jobs.list(JobFilters.of(keyword, companyCategory, company, jobType, city, techStack, certificate, deadlineFrom, deadlineTo, sourceTrust, changedSince, page, pageSize));
+      @RequestParam(defaultValue="1") int page, @RequestParam(defaultValue="20") int pageSize,
+      @RequestParam(required=false) String businessUnit, @RequestParam(required=false) String title,
+      @RequestParam(required=false) String recruitmentYear) {
+    return jobs.list(JobFilters.of(keyword, companyCategory, company, jobType, city, techStack, certificate, deadlineFrom, deadlineTo, sourceTrust, changedSince, page, pageSize, businessUnit, title, recruitmentYear));
   }
   @GetMapping("/{id}") public Map<String, Object> detail(@PathVariable long id) {
     return jobs.detail(id);

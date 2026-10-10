@@ -82,12 +82,14 @@ Initial coverage:
 
 ## Standard Job Template
 
-The canonical Markdown/Excel template has the same 18 ordered fields:
+The canonical Markdown/Excel template has the same 22 ordered fields:
 
 `companyCategory`, `companyName`, `title`, `jobFamily`, `jobType`, `city`,
 `deadline`, `techStack`, `certificateRequirements`, `jd`, `requirements`,
 `applyUrl`, `sourceUrl`, `sourceTrust`, `capturedAt`, `confidence`,
-`reviewStatus`, and `updatedAt`.
+`reviewStatus`, `updatedAt`, `businessUnit`, `recruitmentYear`, `sourceRowId`,
+and `officialJobId`. The last four preserve optional department, graduation
+cohort and source/official identity; unknown values stay empty.
 
 ## Non-Goals
 

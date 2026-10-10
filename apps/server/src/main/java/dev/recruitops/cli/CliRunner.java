@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class CliRunner {
   private static final Set<String> FILTERS = Set.of("keyword", "companyCategory", "company", "jobType", "city",
-      "techStack", "certificate", "deadlineFrom", "deadlineTo", "sourceTrust", "changedSince");
+      "techStack", "certificate", "deadlineFrom", "deadlineTo", "sourceTrust", "changedSince", "businessUnit", "title", "recruitmentYear");
   private final JobService jobs;
   private final JobExportService exports;
   private final CollectionWorkflow workflow;
@@ -97,7 +97,8 @@ public class CliRunner {
   private JobRepository.JobFilter filter(Map<String, String> values) {
     return new JobRepository.JobFilter(values.get("keyword"), values.get("companyCategory"), values.get("company"), values.get("jobType"),
         values.get("city"), values.get("techStack"), values.get("certificate"), values.get("deadlineFrom"), values.get("deadlineTo"),
-        values.get("sourceTrust"), values.get("changedSince"), 1, 100);
+        values.get("sourceTrust"), values.get("changedSince"), 1, 100,
+        values.get("businessUnit"), values.get("title"), values.get("recruitmentYear"));
   }
 
   private Set<String> union(Set<String> first, Set<String> second) { var result = new java.util.HashSet<>(first); result.addAll(second); return result; }

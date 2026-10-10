@@ -24,8 +24,10 @@ public class AgentSettingsService {
     this.sub2api = sub2api;
   }
 
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('ADMIN')")
   public SettingsResponse get() { return response(settings.get()); }
 
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('ADMIN')")
   public SettingsResponse update(SettingsInput input) {
     AgentSettings current = settings.get();
     AgentSettings updated = new AgentSettings(1, required(input.enabled(), "enabled"), localBaseUrl(input.baseUrl()),
@@ -35,6 +37,7 @@ public class AgentSettingsService {
     return response(settings.update(updated));
   }
 
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('ADMIN')")
   public CatalogCheck check() {
     AgentSettings current;
     try {

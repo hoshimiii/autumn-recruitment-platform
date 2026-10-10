@@ -16,6 +16,7 @@ public class RunRepository {
   public Optional<CollectionRun> find(long id) {
     return jdbc.query("SELECT * FROM collection_runs WHERE id=?", this::map, id).stream().findFirst();
   }
+  @org.springframework.transaction.annotation.Transactional
   public CollectionRun start(Long sourceId, String triggerType) {
     jdbc.update("""
         INSERT INTO collection_runs (source_id,trigger_type,status,started_at)

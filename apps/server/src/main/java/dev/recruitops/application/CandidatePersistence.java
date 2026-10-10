@@ -15,9 +15,7 @@ public class CandidatePersistence {
   public int store(long sourceId, long runId, List<DiscoveredCandidate> discovered) {
     int inserted = 0;
     for (DiscoveredCandidate candidate : discovered) {
-      if (candidates.exists(sourceId, candidate.dedupeKey(), candidate.contentHash())) continue;
-      candidates.insert(sourceId, runId, candidate);
-      inserted++;
+      inserted += candidates.insertIfAbsent(sourceId, runId, candidate);
     }
     return inserted;
   }

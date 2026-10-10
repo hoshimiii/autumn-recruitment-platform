@@ -27,14 +27,17 @@ public class CollectionWorkflow {
     this.persistence = persistence;
   }
 
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public CollectionRun runSource(long sourceId) {
     return execute(source(sourceId), "MANUAL", false, true);
   }
 
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public CollectionRun testSource(long sourceId) {
     return execute(source(sourceId), "TEST", true, false);
   }
 
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public CollectionRun runDaily() {
     if (!dailyRunning.compareAndSet(false, true)) {
       throw new IllegalStateException("Daily collection is already running");

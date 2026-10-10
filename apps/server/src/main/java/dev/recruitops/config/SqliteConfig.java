@@ -13,11 +13,16 @@ import org.springframework.jdbc.support.JdbcTransactionManager;
 
 @Configuration
 public class SqliteConfig {
-  @Bean DataSource dataSource(DataSourceProperties properties) {
+  @Bean public DataSource dataSource(DataSourceProperties properties) {
     ensureSqliteDirectory(properties.getUrl());
     HikariDataSource source = properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
-    source.setMaximumPoolSize(1); source.setMinimumIdle(1);
-    source.setConnectionInitSql("PRAGMA foreign_keys=ON");
+    source.setMaximumPoolSize(4); source.setMinimumIdle(1);
+    source.addDataSourceProperty("foreign_keys", "true");
+    source.addDataSourceProperty("busy_timeout", "5000");
+    String url = properties.getUrl();
+    if (url != null && !url.contains(":memory:") && !url.contains("mode=memory")) {
+      source.addDataSourceProperty("journal_mode", "WAL");
+    }
     return source;
   }
   @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }

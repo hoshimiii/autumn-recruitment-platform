@@ -21,10 +21,11 @@ public class CandidateRepository {
         """, Integer.class, sourceId, dedupeKey, contentHash) == 1;
   }
 
-  public void insert(long sourceId, long runId, DiscoveredCandidate candidate) {
-    jdbc.update("""
+  public int insertIfAbsent(long sourceId, long runId, DiscoveredCandidate candidate) {
+    return jdbc.update("""
         INSERT INTO review_items (source_id,run_id,candidate_payload,normalized_payload,dedupe_key,
         content_hash,confidence,status) VALUES (?,?,?,?,?,?,?,'PENDING_REVIEW')
+        ON CONFLICT(source_id,dedupe_key,content_hash) WHERE content_hash IS NOT NULL DO NOTHING
         """, sourceId, runId, json.write(candidate.candidatePayload()),
         json.write(candidate.normalizedPayload()), candidate.dedupeKey(), candidate.contentHash(),
         candidate.confidence());

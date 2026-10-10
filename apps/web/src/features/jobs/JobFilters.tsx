@@ -11,6 +11,9 @@ export function JobFilters({ jobs, filters, onChange }: Props) {
     <label>关键词<input value={filters.keyword} onChange={(event) => update("keyword", event.target.value)} placeholder="公司、岗位、城市" /></label>
     {select("公司类型", "companyCategory", jobs.map((job) => job.companyCategory))}
     {select("公司", "company", jobs.map((job) => job.companyName))}
+    <label>部门<input value={filters.businessUnit} onChange={(event) => update("businessUnit", event.target.value)} placeholder="完整部门名称" /></label>
+    <label>岗位名称<input value={filters.title} onChange={(event) => update("title", event.target.value)} placeholder="完整岗位名称" /></label>
+    <label>毕业届别<input type="number" min="2000" max="2099" value={filters.recruitmentYear} onChange={(event) => update("recruitmentYear", event.target.value)} placeholder="例如 2027" /></label>
     {select("岗位类型", "jobType", jobs.map((job) => job.jobType))}
     {select("城市", "city", jobs.map((job) => job.city))}
     {select("技术栈筛选", "techStack", jobs.flatMap((job) => job.techStack))}

@@ -15,9 +15,13 @@ public class SourceService {
   private final SourceRepository sources;
   private final JsonValues json;
   public SourceService(SourceRepository sources, JsonValues json) { this.sources = sources; this.json = json; }
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public List<Source> list() { return sources.list(); }
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('ADMIN')")
   public Source create(SourceInput input) { return sources.create(input.toSource(0, json), validateSecret(input.secretEnvRef())); }
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('ADMIN')")
   public Source update(long id, SourceInput input) { return sources.update(id, input.toSource(id, json), validateSecret(input.secretEnvRef())); }
+  @org.springframework.security.access.prepost.PreAuthorize("@operationAuthorizer.can('ADMIN')")
   public void delete(long id) { sources.delete(id); }
   private String validateSecret(String secret) {
     if (secret == null || secret.isBlank()) return null;

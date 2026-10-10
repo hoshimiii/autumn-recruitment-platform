@@ -7,4 +7,5 @@ public record Job(long id, String companyCategory, String companyName, String ti
                   List<String> techStack, List<String> certificateRequirements, String sourceUrl, String applyUrl,
                   String applyMethod, boolean requiresLogin, boolean requiresCaptcha, String sourceTrust,
                   String sourceName, String sourceType, String capturedAt, String updatedAt,
-                  String reviewStatus, Double confidence, String jd, String requirements) {}
+                  String reviewStatus, Double confidence, String jd, String requirements,
+                  String businessUnit, Integer recruitmentYear, String sourceRowId, String officialJobId) {}
