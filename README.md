@@ -3,6 +3,16 @@
 本地优先的秋招信息整理系统。React 微前端负责岗位展示、筛选、详情、来源配置、
 采集运行和人工复核；Java 服务负责 SQLite 持久化、合规采集、导出、CLI 与 MCP。
 
+已加入 OIDC SSO 与四级权限、SQLite 并发控制、可选 Redis 缓存与 ES 模糊搜索，
+以及两进程浏览器采集到人工待核验的流程。部门、毕业届别、来源行和官方岗位编号
+贯穿候选、复核、发布与导出；缺失部门或届别保持未知。
+
+默认仍是仅监听回环地址的本地模式，Redis、ES 和 AI 默认关闭。中间件与 SSO
+启动方法见 [infra/README.md](infra/README.md)，浏览器工作进程见
+[scripts/browser-workers/README.md](scripts/browser-workers/README.md)。
+[Hadoop/HBase/ZooKeeper 实验](labs/analytics/README.md) 使用独立合成数据，
+演示批处理与聚合存取；不接管业务数据库。验收证据与未验证项见 [CONTEXT.md](CONTEXT.md)。
+
 ## 快速启动
 
 环境要求：Node.js 24、npm 11、Java 17。Maven 由仓库内 Wrapper 提供。
@@ -20,6 +30,12 @@ npm run dev:web
 
 打开 `http://127.0.0.1:5173`。后端默认使用相对当前运行目录的
 `./data/recruitment.sqlite`，所有示例来源默认停用。
+
+若 Windows 报端口 `EACCES`，先用 `netsh interface ipv4 show excludedportrange protocol=tcp`
+确认保留范围；本次验收机器的 8080 和旧测试端口 14300 位于保留范围。可在后端
+终端设置 `$env:SERVER_PORT='18189'`，在前端终端设置
+`$env:VITE_API_BASE_URL='http://127.0.0.1:18189/api/v1'` 后分别启动，
+无需修改系统网络设置。使用 SSO 时同时调整 IdP 客户端的允许回调地址。
 
 ## 工作流
 
@@ -42,9 +58,10 @@ npm run typecheck
 npm run build
 npm run e2e
 npm run smoke:mcp
+node --test scripts/browser-workers/*.test.mjs
 ```
 
-Playwright 使用隔离端口 `15173/18082/14300`，不会复用或停止开发预览，
+Playwright 使用隔离端口 `15173/18082/14350`，不会复用或停止开发预览，
 并避开本地 Sub2API 默认使用的 `18080`。
 
 ## CLI

@@ -36,27 +36,58 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 
 ## Pending List
 
-1. Publish contracts and preserve baseline. [in progress]
-2. Implement canonical identity/evidence and browser task/result protocol.
-3. Implement SSO/RBAC and frontend session/capability handling.
-4. Implement atomic SQL writes/CAS, WAL and Redis/ES derived capabilities.
-5. Implement standalone educational analytics lab.
-6. Integrate fixture workers and full acceptance; review actual changes and commit.
+1. Contracts and existing Agent baseline preserved. [done: 57bc7dd, 028f35e]
+2. Canonical identity/evidence and browser task/result protocol. [implemented/tested]
+3. SSO/RBAC and frontend session/capability handling. [implemented/protocol-tested]
+4. Atomic SQL writes/CAS, WAL and Redis/ES projections. [implemented/fixture-tested]
+5. Standalone analytics lab. [committed: 864e014; container runtime pending]
+6. Exact optional department/title/cohort query filters. [done/tested]
+7. Integrated core and workers committed: cb2919e, 1d0c53c; local middleware
+   topology: 394bc5a. Final evidence and startup documentation ready.
+8. Runtime acceptance: Docker Engine, real IdP/middleware/lab, permitted live
+   Feishu final URL/selectors and actual provider remain pending prerequisites.
 
 ## Verification and Remaining Risk
 
-- Baseline Java: 53 tests passed, 2026-10-10.
-- Baseline frontend: 19 tests passed, 2026-10-10.
-- npm ci reports 5 dependency vulnerabilities; investigate exact advisories before
-  final acceptance rather than applying an unrelated blanket upgrade.
+- Final Java package: 83 tests, zero failures/errors/skips, 2026-10-10.
+  Evidence: apps/server/target/final-java-package.log and surefire-reports.
+- Final frontend: 28 tests, typecheck/lint/build passed after exact filter changes.
+  Evidence: apps/server/target/final-frontend.log.
+- Playwright: 3 passed against an isolated real Java backend, plus mocked desktop
+  and mobile views. Screenshots visually inspected at 1280x720 and 390x844.
+  Evidence: apps/server/target/final-e2e.log and ignored test-results screenshots.
+- Browser worker: 12 tests passed including actual Chrome redirect/XHR/barrier
+  guards. Two separate browser worker processes with a local model-protocol stub
+  completed against the packaged Java API: manual=1, pendingReview=1, published=0.
+  Evidence: apps/server/target/final-worker-tests.log and final-worker-smoke.log.
+- HTTP redirects are explicitly rejected; configure the approved final public
+  URL. Regression proves no redirect target dispatch, while a directly configured
+  nested final URL preserves relative scripts and location.pathname semantics.
+- MCP STDIO initialization/tools/search smoke passed; packaged CLI search passed.
+  CanonicalPublicationTest reads back actual Markdown/XLSX fields after approval.
+  Evidence: apps/server/target/final-mcp.log and final-cli.log.
+- Analytics Java: 3 tests passed; both middleware/lab Compose configurations valid.
+  Container image build and actual aggregation/HBase readback remain unverified.
+- npm audit: zero vulnerabilities after bounded lockfile-only compatible fixes.
+- Independent review fixes include generated-ID races, ES refresh-failed replay,
+  per-request browser policy checks, logout CORS/CSRF and dataset namespaces.
+- Windows excluded port 8080 and old fixture port 14300; scoped fixture moved to
+  14350. README gives a process-only 18189 startup override. No machine network
+  settings changed. Owned fixture backends stopped; no acceptance-port listeners
+  remain. Test data was in-memory and no operational database was changed.
 - Docker CLI is installed, daemon unavailable (missing dockerDesktopLinuxEngine
   pipe). Middleware/real IdP runtime cannot yet be claimed.
 - OpenViking project search reachable; returned unrelated autogame entries, so live
   code and existing project documents are the evidence for this enhancement.
-- Earlier accepted version: Java 42/frontend18/browser3; those historical checks
-  do not validate the new implementation.
-- Real source policy/selectors and JDK HttpClient DNS TOCTOU remain limitations.
+- Actual Keycloak SSO, Redis/ES, Hadoop/HBase/ZooKeeper, live Feishu selectors and
+  a real model call remain unverified. Protocol fixtures are not live acceptance.
+- SQLite still has one writer; no throughput benchmark or distributed-database
+  performance claim. JDK HttpClient DNS TOCTOU remains a limitation.
 
 ## Exact Next Action
 
-Finish written contracts, then scoped TDD implementations under root ownership.
+Review the committed implementation in this named worktree. For real-runtime
+acceptance, first provide a running Docker Engine, then use infra/README.md and
+labs/analytics/run.ps1 smoke in the isolated local test environment. Live
+Feishu and actual model calls require approved final URL/policy/selectors and
+provider setup/cost authorization. No public push or operational DB migration done.
