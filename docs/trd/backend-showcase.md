@@ -1,0 +1,72 @@
+# Backend enhancement contract
+
+## Runtime and authority
+
+Keep Java 17 / Spring Boot application services, separate React client, local SQLite
+default, and the existing mount/unmount/base-route/API-base contracts. Middleware
+is optional. Operational databases and previous worktree changes are untouched.
+No paid model calls, live Feishu collection, public push, or deployment is part of
+development acceptance. A source needs explicit policy approval before collection;
+login, CAPTCHA, 401/403/429, robots denial, copy/export restrictions or a new origin
+stop a browser task. Never bypass an access barrier.
+
+## Identity and evidence
+
+`businessUnit` is department; `recruitmentYear` is the graduation cohort (2027 means
+2027 graduates), not capture year. Missing values remain null. Company + department
++ role + cohort is a match suggestion, not authority to merge unknown departments,
+different official job IDs or locations. Source + stable row ID + item discriminator
+defines replay identity; normalized content hash distinguishes changed versions.
+Company-level rows go to manual_items. Independently evidenced jobs enter review_items
+as PENDING_REVIEW, never directly PUBLISHED. Preserve visible text, source row ID,
+capture time, source URL, worker/task IDs and immutable extraction evidence.
+
+## Authentication and authorization
+
+Local mode is a trusted loopback tool; OIDC mode uses a configured issuer, authorization
+code login/session and bearer tokens validated against issuer/audience. Roles are
+VIEWER, COLLECTOR, REVIEWER and ADMIN. Public published job queries/exports are anonymous.
+COLLECTOR can create pending candidates/tasks; REVIEWER can approve/reject; ADMIN can
+change sources/Agent settings and operate projections. Never trust a submitted role.
+Apply checks at application services, including REST/CLI/MCP callers. Local STDIO/CLI
+is explicitly a trusted local-owner boundary; OIDC mode must not silently grant it
+admin. Browser session mutations require CSRF; bearer workers do not use cookies.
+Expose an auth session/capability contract to React; preserve embedded host routing.
+
+## Concurrency and optional projections
+
+SQLite file databases use WAL and a bounded busy timeout; SQLite still has one writer.
+Use atomic conflict-aware candidate insert, optimistic review state transitions and
+durable task leases/fencing. Do network/model/browser work outside SQL transactions.
+Redis can cache published-query results and coordinate request rate; its absence
+cannot remove SQL constraints or allow expired workers to commit.
+ES contains only published-job projections; SQL remains authoritative. Use a durable
+outbox and replay/rebuild, validate indexed hits against SQL status, limit fuzzy search,
+and fall back to SQL if ES is unavailable. Never accept arbitrary query DSL or URL.
+
+## Browser worker protocol
+
+Tasks carry approved source, origin, policy version, fixed row range and budgets.
+Claim and complete require worker ID and current lease token; stale claims or revoked
+source policies fail. Workers use separate browser contexts and bounded visible-page
+reads, return validated structured fields/evidence, and stop on access barriers.
+A runnable external supervisor starts at most two workers, with local fixture/provider
+stubs for non-billable acceptance. This is the application's worker-agent workflow;
+native Codex/CUA delegation is a separate capability and must not be falsely claimed.
+
+## Educational analytics lab
+
+Hadoop processes a fixed synthetic/exported dataset; HBase stores derived aggregates;
+ZooKeeper coordinates the HBase lab. These are not the transactional database or an
+automatic requirement of the application. Provide runnable image/build, sample input,
+aggregate/readback and scoped cleanup commands. Label configuration/static checks,
+protocol fixtures and actual middleware runtime evidence separately.
+
+## Acceptance
+
+Tests cover optional identity fields, replay, conflicts, edited identities, RBAC/CSRF,
+parallel SQL insertion, competing review decisions, expired task claims, policy
+revocation, oversized/invalid results, Redis/ES failure and projection replay.
+Run Java, frontend, lint, build, real browser fixtures, CLI, MCP, Markdown and Excel
+readback. Capture desktop/mobile evidence. Infrastructure-dependent acceptance remains
+pending if its exact runtime is unavailable; do not substitute mock success.

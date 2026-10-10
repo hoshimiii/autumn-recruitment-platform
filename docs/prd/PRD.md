@@ -107,3 +107,7 @@ The canonical Markdown/Excel template has the same 18 ordered fields:
 - Markdown and Excel exports contain the standard fields and can be read back.
 - CLI and MCP return the same persisted records as REST.
 - All automated checks and browser acceptance pass from a clean checkout.
+
+## Authorized backend enhancement
+
+Implement SSO/RBAC, bounded browser-worker ingestion to pending review, concurrent SQL correctness, optional Redis/ES, and a standalone analytics demonstration. The binding contract and acceptance boundary are in ../trd/backend-showcase.md. Existing collection safety and no-resume-submission boundaries remain binding.
