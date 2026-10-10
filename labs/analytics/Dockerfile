@@ -11,7 +11,7 @@ ARG HBASE_VERSION=2.6.6
 ARG HBASE_SHA512=665f944952d3afe9efc79dcce4e366b017f9c18eab1942ca34e679edd10abff70374695c5a7b7a506492002f345047e30bb4c586066a4769160764ab6c16f9c7
 ENV JAVA_HOME=/opt/java/openjdk HADOOP_HOME=/opt/hadoop HBASE_HOME=/opt/hbase HBASE_CONF_DIR=/opt/hbase/conf HADOOP_HEAPSIZE=256 HBASE_HEAPSIZE=384 HBASE_MASTER_OPTS=-Xmx384m HBASE_REGIONSERVER_OPTS=-Xmx512m HBASE_LOG_DIR=/lab/state/logs
 ENV PATH="${HADOOP_HOME}/bin:${HBASE_HOME}/bin:${PATH}"
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl netcat-openbsd \
+RUN apt-get -o Acquire::Retries=3 update && apt-get -o Acquire::Retries=3 install -y --no-install-recommends ca-certificates curl netcat-openbsd \
     && rm -rf /var/lib/apt/lists/* \
     && curl -fsSL "https://downloads.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}-lean.tar.gz" -o /tmp/hadoop.tgz \
     && echo "${HADOOP_SHA512}  /tmp/hadoop.tgz" | sha512sum -c - \
