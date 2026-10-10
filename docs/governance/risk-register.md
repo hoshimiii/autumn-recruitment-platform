@@ -17,8 +17,9 @@ format-specific adapter only after policy and fixture review.
 
 Risk: LLM extraction can hallucinate or over-normalize fields.
 
-Mitigation: AI execution is out of scope in this delivery; only future
-configuration metadata is stored.
+Mitigation: optional Agent execution is disabled by default, restricted to a
+loopback Sub2API endpoint, validates untrusted output, preserves deterministic
+fallback candidates, and never bypasses review.
 
 ## Third-Party Staleness
 

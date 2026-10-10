@@ -61,6 +61,14 @@ export type Source = {
 };
 
 export type SourceInput = Omit<Source, "id" | "etag" | "lastModified" | "lastRunAt" | "lastStatus" | "configVersion"> & { secretEnvRef?: string };
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
+export type AgentSettings = {
+  enabled: boolean; baseUrl: string; secretEnvRef: string; secretConfigured: boolean; scanModel: string;
+  scanReasoningEffort: ReasoningEffort; processModel: string; processReasoningEffort: ReasoningEffort;
+  timeoutSeconds: number; configVersion: number; updatedAt?: string;
+};
+export type AgentSettingsInput = Pick<AgentSettings, "enabled" | "baseUrl" | "secretEnvRef" | "scanModel" | "scanReasoningEffort" | "processModel" | "processReasoningEffort" | "timeoutSeconds">;
+export type AgentSettingsCheck = { connected: boolean; secretConfigured: boolean; models: string[]; scanModelAvailable: boolean; processModelAvailable: boolean; message: string };
 export type ReviewItem = { id: EntityId; companyName: string; title: string; reason?: string; confidence?: number; status: string; sourceName?: string; createdAt?: string };
 export type ReviewDetail = { id: EntityId; sourceId?: EntityId; sourceName?: string; status: string;
   candidatePayload: Record<string, unknown>; normalizedPayload: Record<string, unknown>; reason?: string;
@@ -101,6 +109,9 @@ export function listSources(signal: AbortSignal): Promise<Source[]> { return req
 export function createSource(input: SourceInput): Promise<Source> { return request<Source>("/sources", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); }
 export function updateSource(id: EntityId, input: SourceInput): Promise<Source> { return request<Source>(`/sources/${encodeURIComponent(String(id))}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); }
 export function deleteSource(id: EntityId): Promise<void> { return request<void>(`/sources/${encodeURIComponent(String(id))}`, { method: "DELETE" }); }
+export function getAgentSettings(signal: AbortSignal): Promise<AgentSettings> { return request<AgentSettings>("/agent-settings", { signal }); }
+export function updateAgentSettings(input: AgentSettingsInput): Promise<AgentSettings> { return request<AgentSettings>("/agent-settings", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }); }
+export function checkAgentSettings(): Promise<AgentSettingsCheck> { return request<AgentSettingsCheck>("/agent-settings/check", { method: "POST" }); }
 export function testSource(id: EntityId): Promise<Run> { return request<Run>(`/sources/${encodeURIComponent(String(id))}/test`, { method: "POST" }); }
 export function runSource(id: EntityId): Promise<Run> { return request<Run>(`/sources/${encodeURIComponent(String(id))}/runs`, { method: "POST" }); }
 export function listReviewItems(signal: AbortSignal): Promise<ReviewItem[]> { return request<ReviewItem[] | { items: ReviewItem[] }>("/review-items", { signal }).then(list); }

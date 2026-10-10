@@ -42,6 +42,19 @@ persisting candidates.
 
 Secret fields accept only environment-variable references and are never returned.
 
+## Agent Settings
+
+`GET /api/v1/agent-settings` returns the singleton configuration, whether its
+secret environment variable is currently configured, and its config version.
+
+`PUT /api/v1/agent-settings` updates enablement, loopback `/v1` base URL,
+scanner/processor models and reasoning levels, timeout, and a required secret
+environment-variable reference for enablement or connection checks. The secret
+value is never accepted or returned.
+
+`POST /api/v1/agent-settings/check` reads the provider model catalog without
+invoking a model and reports connectivity plus scanner/processor catalog presence.
+
 ## Crawl Tasks
 
 `GET /api/v1/runs` lists source and daily workflow runs.

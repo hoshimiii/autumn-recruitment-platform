@@ -7,6 +7,17 @@ As a local-first recruitment tracker user, I can add or enable a source with sou
 Only enabled `ALLOWED` sources with a terms URL and recorded confirmation can
 be collected automatically.
 
+## Agent Configuration
+
+As an operator, I can configure the local Sub2API endpoint, secret environment
+variable, scanner model and reasoning level, and processor model and reasoning
+level. I can check connectivity and model catalog availability without invoking
+a model or revealing the secret.
+
+Agent execution remains off until I enable it globally and on an individual
+source. A provider or output-validation failure keeps the deterministic candidate
+and records fallback evidence for review.
+
 ## Controlled Collection
 
 As a user, I can trigger one-shot collection or allow scheduled collection for enabled whitelist sources so new or changed jobs are discovered without broad crawling.
@@ -16,6 +27,11 @@ login-required, captcha-required, and unknown compliance sources, runs the
 matching adapter, preserves bounded candidate evidence, normalizes jobs,
 computes dedupe keys and content hashes, writes new or changed records to the
 review queue, and records timing, counts, and errors.
+
+For an Agent-enabled source, the scanner attaches relevance evidence without
+dropping candidates and the processor maps bounded enrichment fields to the
+canonical job template. Deterministic validation remains authoritative at the
+trust boundary.
 
 Collection is low-frequency, bounded, source-scoped, and snapshot-based. Failed sources do not block other sources.
 

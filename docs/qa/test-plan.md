@@ -13,6 +13,9 @@ Implementation follows TDD for production code. Documentation and root config bo
 - Approve, reject, and block review items.
 - Validate manual item required fields.
 - Render the canonical Markdown field order.
+- Validate Agent settings, loopback endpoint, environment-variable reference, and
+  reasoning levels.
+- Parse Sub2API model catalogs and non-streaming Responses output with local stubs.
 
 ## Integration Coverage
 
@@ -26,6 +29,8 @@ Implementation follows TDD for production code. Documentation and root config bo
 - SQLite persists after restart.
 - Job filters, sorting, and pagination return expected records.
 - Daily runs do not overlap in one process.
+- Agent execution honors global and source switches; malformed/provider failures
+  retain deterministic candidates and bounded fallback evidence.
 - Excel exports are read back with the expected headers and values.
 
 ## E2E Coverage
@@ -36,7 +41,7 @@ Implementation follows TDD for production code. Documentation and root config bo
 - The real Java browser path creates a compliant source, collects one fixture,
   reviews and approves it, filters the published job, opens detail, and downloads
   Markdown and Excel.
-- Micro-frontend mount/unmount and source/manual forms are covered by frontend tests.
+- Micro-frontend mount/unmount and source/manual/Agent settings forms are covered by frontend tests.
 
 ## Interface Coverage
 

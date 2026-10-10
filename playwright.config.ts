@@ -20,13 +20,13 @@ export default defineConfig({
     },
     {
       command: ".\\mvnw.cmd -f apps/server/pom.xml spring-boot:run",
-      url: "http://127.0.0.1:18080/api/v1/health",
+      url: "http://127.0.0.1:18082/api/v1/health",
       reuseExistingServer: false,
       timeout: 180_000,
       env: {
         SPRING_DATASOURCE_URL: "jdbc:sqlite:file:recruitops-e2e?mode=memory&cache=shared",
         SPRING_PROFILES_ACTIVE: "test",
-        SERVER_PORT: "18080",
+        SERVER_PORT: "18082",
         RECRUITOPS_CORS_ALLOWED_ORIGINS: "http://127.0.0.1:15173",
         RECRUITOPS_COLLECTOR_ALLOW_PRIVATE_ADDRESSES: "true",
         RECRUITOPS_MINIMUM_FLOOR_SECONDS: "0"
@@ -37,7 +37,7 @@ export default defineConfig({
       url: "http://127.0.0.1:15173",
       reuseExistingServer: false,
       timeout: 120_000,
-      env: { VITE_API_BASE_URL: "http://127.0.0.1:18080/api/v1" }
+      env: { VITE_API_BASE_URL: "http://127.0.0.1:18082/api/v1" }
     }
   ],
   projects: [

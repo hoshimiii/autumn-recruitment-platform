@@ -17,13 +17,15 @@ public class CollectionEngine {
   private final SafeHttpFetcher fetcher;
   private final RobotsPolicy robots;
   private final AdapterRegistry adapters;
+  private final AgentCandidateWorkflow agentWorkflow;
   private final CandidateNormalizer normalizer;
 
   public CollectionEngine(SafeHttpFetcher fetcher, RobotsPolicy robots, AdapterRegistry adapters,
-                          CandidateNormalizer normalizer) {
+                          AgentCandidateWorkflow agentWorkflow, CandidateNormalizer normalizer) {
     this.fetcher = fetcher;
     this.robots = robots;
     this.adapters = adapters;
+    this.agentWorkflow = agentWorkflow;
     this.normalizer = normalizer;
   }
 
@@ -50,8 +52,9 @@ public class CollectionEngine {
         throw CollectionException.failed("http_" + response.status());
       }
       List<Map<String, Object>> parsed = adapters.adapter(source.mode()).parse(source, response);
-      for (Map<String, Object> raw : parsed) {
-        if (candidates.size() >= source.maxItems()) break;
+      int remaining = source.maxItems() - candidates.size();
+      List<Map<String, Object>> bounded = parsed.stream().limit(remaining).toList();
+      for (Map<String, Object> raw : agentWorkflow.enrich(source, bounded)) {
         candidates.add(normalizer.normalize(source, raw));
       }
     }

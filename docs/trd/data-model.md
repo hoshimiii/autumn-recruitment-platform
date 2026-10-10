@@ -18,6 +18,15 @@ Stores collection task runs.
 
 Key fields: `id`, `source_id`, `trigger_type`, `status`, `started_at`, `finished_at`, `discovered_count`, `review_item_count`, `error_count`, `error_summary`.
 
+## `agent_settings`
+
+Stores one global optional Agent workflow configuration.
+
+Key fields: `id`, `enabled`, `base_url`, `secret_env_ref`, `scan_model`,
+`scan_reasoning_effort`, `process_model`, `process_reasoning_effort`,
+`timeout_seconds`, `config_version`, `updated_at`. The provider key value is never
+stored in SQLite.
+
 ## `review_items`
 
 Stores candidate jobs or changes pending review.

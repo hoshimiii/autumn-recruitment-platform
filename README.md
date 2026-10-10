@@ -44,7 +44,8 @@ npm run e2e
 npm run smoke:mcp
 ```
 
-Playwright 使用隔离端口 `15173/18080/14300`，不会复用或停止开发预览。
+Playwright 使用隔离端口 `15173/18082/14300`，不会复用或停止开发预览，
+并避开本地 Sub2API 默认使用的 `18080`。
 
 ## CLI
 
@@ -105,7 +106,12 @@ app.mount(document.querySelector("#recruitment-root"));
 
 ## 配置
 
-常用环境变量见 [.env.example](.env.example)。当前版本只记录可选 AI 配置元数据，
-不执行 AI 网络调用；配置页只保存密钥环境变量名，不接收或返回明文密钥。
+常用环境变量见 [.env.example](.env.example)。在“配置中心”中可设置本地
+Sub2API、扫描/处理模型和推理等级；配置页只保存密钥环境变量名，不接收或返回
+明文密钥。Agent 默认关闭，只有全局和单个来源同时启用才执行，失败时保留确定性
+解析结果进入复核。
+
+本机 Sub2API 默认地址为 `http://127.0.0.1:18080/v1`。启动 Java 服务前在当前
+进程环境中设置 `SUB2API_API_KEY`；“检查连接”只读取模型目录，不调用模型。
 
 设计、接口、安全边界和测试证据位于 `docs/`，当前执行状态位于 `CONTEXT.md`。

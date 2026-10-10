@@ -61,6 +61,11 @@
 }
 
 .manual-form .check-label input { width: auto; }
+.settings-status { align-self: center; color: var(--ink-muted); font-size: 12px; margin: 0; }
+.agent-check { color: var(--ink-muted); display: flex; flex-wrap: wrap; font-size: 12px; gap: 8px; margin-top: 11px; }
+.model-catalog { overflow-wrap: anywhere; }
+.check-ok { color: var(--success); }
+.check-warning { color: var(--warning); }
 .form-error { color: var(--danger); font-size: 12px; margin: 0; }
 .empty-state { color: var(--ink-subtle); font-size: 12px; }
 .state-panel { align-items: center; color: var(--ink-muted); display: flex; flex-wrap: wrap; font-size: 13px; gap: 10px; }

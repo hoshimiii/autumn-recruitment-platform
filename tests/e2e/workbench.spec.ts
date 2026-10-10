@@ -24,7 +24,7 @@ test("home fetches jobs, keeps filters in URL, and shows details", async ({ page
 
 test("ops routes stay separate and keep a compact desktop layout", async ({ page }) => {
   await mockApi(page); await page.setViewportSize({ width: 1280, height: 720 });
-  for (const route of [{ path: "/ops/add", title: "添加/导入" }, { path: "/ops/review", title: "岗位复核" }, { path: "/ops/config", title: "来源配置" }, { path: "/ops/tasks", title: "运行记录" }]) {
+  for (const route of [{ path: "/ops/add", title: "添加/导入" }, { path: "/ops/review", title: "岗位复核" }, { path: "/ops/config", title: "配置中心" }, { path: "/ops/tasks", title: "运行记录" }]) {
     await page.goto(route.path); await expect(page.locator("h1", { hasText: route.title })).toBeVisible();
   }
   await page.goto("/");
@@ -47,7 +47,7 @@ test("ops routes stay separate and keep a compact desktop layout", async ({ page
 });
 
 test("real source collection closes the review, display, and export loop", async ({ page, request }) => {
-  const api = "http://127.0.0.1:18080/api/v1";
+  const api = "http://127.0.0.1:18082/api/v1";
   const sourceResponse = await request.post(`${api}/sources`, {
     data: {
       name: "齐鲁数科校招",

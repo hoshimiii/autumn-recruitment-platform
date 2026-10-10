@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError, createSource, deleteSource, listSources, runSource, testSource, updateSource } from "../api/client";
 import type { Source, SourceInput } from "../api/client";
 import { PageHeader } from "../features/layout/PageHeader";
+import { AgentSettingsPanel } from "../features/settings/AgentSettingsPanel";
 import { SourceForm } from "../features/sources/SourceForm";
 import { SourceList } from "../features/sources/SourceList";
 import type { SourceAction } from "../features/sources/SourceList";
@@ -41,9 +42,10 @@ export function OpsConfigPage() {
     finally { setPending(undefined); }
   };
   const closeForm = () => { setEditing(undefined); setCreating(false); };
-  return <main className="workbench"><PageHeader title="来源配置" description="只配置已确认的公开信息源和可选分类 Agent。"
+  return <main className="workbench"><PageHeader title="配置中心" description="管理本地 Agent 工作流和已确认的公开信息源。"
     actions={<button type="button" onClick={() => { setCreating(true); setEditing(undefined); setError(undefined); }}>新增来源</button>} />
     {error ? <section className="panel state-panel" role="alert">{error}</section> : null}
+    <AgentSettingsPanel />
     <div className="ops-grid single-column">{creating || editing ? <SourceForm
         key={editing ? String(editing.id) : "new"} source={editing} onCancel={closeForm} onSave={save} /> : null}
       <SourceList sources={sources} pending={pending} onAction={action} /></div>

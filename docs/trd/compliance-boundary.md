@@ -28,7 +28,8 @@ be classified as `ALLOWED` before an adapter can run.
 - Captcha-required pages.
 - Strong anti-bot or high-risk platforms.
 - Platforms whose terms disallow automation.
-- Attachment-only pages and AI extraction in this delivery.
+- Attachment-only pages. Optional Agent analysis cannot fetch sources or bypass
+  the adapter, source-policy, and review boundaries.
 
 For manual-only sources, the app stores platform name, company, job or search keywords, source URL, required manual action, reminder time, and notes. It does not run a crawler.
 
