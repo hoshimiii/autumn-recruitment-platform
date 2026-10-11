@@ -16,6 +16,7 @@ public class ManualItemRepository {
     return jdbc.query("SELECT * FROM manual_items ORDER BY created_at DESC, id DESC", this::map);
   }
 
+  @org.springframework.transaction.annotation.Transactional
   public ManualItem create(ManualInput input) {
     jdbc.update("""
         INSERT INTO manual_items (platform,company_name,job_title,search_keywords,source_url,

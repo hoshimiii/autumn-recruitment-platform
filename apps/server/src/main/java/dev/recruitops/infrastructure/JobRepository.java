@@ -21,12 +21,20 @@ public class JobRepository {
       rs.getBoolean("requires_login"), rs.getBoolean("requires_captcha"), rs.getString("source_trust_level"),
       rs.getString("source_name"), rs.getString("source_type"), rs.getString("captured_at"),
       rs.getString("updated_at"), rs.getString("review_status"), nullableDouble(rs, "confidence"),
-      rs.getString("jd"), rs.getString("requirements"));
+      rs.getString("jd"), rs.getString("requirements"), rs.getString("business_unit"),
+      cohort(rs.getString("campus_batch")), rs.getString("source_row_id"), rs.getString("official_job_id"));
   }
   public Page list(JobFilter filter) {
+    return list(filter, null);
+  }
+  public Page list(JobFilter filter, List<Long> matchingIds) {
     List<Object> args = new ArrayList<>(); StringBuilder where = new StringBuilder(" WHERE j.status='PUBLISHED' AND (j.deadline IS NULL OR j.deadline='' OR j.deadline >= date('now'))");
-    add(where, args, "(j.company_name LIKE ? OR j.title LIKE ? OR j.jd LIKE ?)", filter.keyword(), 3);
+    if (matchingIds == null) add(where, args, "(j.company_name LIKE ? OR j.title LIKE ? OR j.jd LIKE ?)", filter.keyword(), 3);
+    else if (matchingIds.isEmpty()) where.append(" AND 1=0");
+    else { where.append(" AND j.id IN (").append(String.join(",", java.util.Collections.nCopies(matchingIds.size(), "?"))).append(")"); args.addAll(matchingIds); }
     add(where, args, "j.company_type=?", filter.companyCategory(), 1); add(where, args, "j.company_name=?", filter.company(), 1);
+    add(where, args, "j.business_unit=?", filter.businessUnit(), 1); add(where, args, "j.title=?", filter.title(), 1);
+    add(where, args, "j.campus_batch=?", filter.recruitmentYear(), 1);
     add(where, args, "j.job_type=?", filter.jobType(), 1); add(where, args, "j.city=?", filter.city(), 1);
     add(where, args, "j.tech_stack LIKE ?", filter.techStack(), 1); add(where, args, "j.certificate_requirements LIKE ?", filter.certificate(), 1);
     add(where, args, "j.deadline >= ?", filter.deadlineFrom(), 1); add(where, args, "j.deadline <= ?", filter.deadlineTo(), 1);
@@ -46,33 +54,46 @@ public class JobRepository {
           json.tree(rs.getString("parsed_payload") == null ? "{}" : rs.getString("parsed_payload")),
           rs.getString("captured_at")), jobId);
   }
+  @org.springframework.transaction.annotation.Transactional
   public SavedJob upsert(JobDraft draft, long sourceId) {
     Optional<Long> existing = jdbc.queryForList(
         "SELECT id FROM jobs WHERE dedupe_key=? ORDER BY id LIMIT 1", Long.class, draft.dedupeKey())
         .stream().findFirst();
+    if (existing.isEmpty()) existing = jdbc.queryForList("""
+        SELECT id FROM jobs WHERE source_id=? AND dedupe_key=?
+          AND COALESCE(business_unit,'')=COALESCE(?,'')
+          AND COALESCE(campus_batch,'')=COALESCE(?,'')
+          AND COALESCE(source_row_id,'')=COALESCE(?,'')
+          AND COALESCE(official_job_id,'')=COALESCE(?,'') ORDER BY id LIMIT 1
+        """, Long.class, sourceId, draft.preUpgradeDedupeKey(), draft.businessUnit(),
+        draft.recruitmentYear() == null ? null : draft.recruitmentYear().toString(),
+        draft.sourceRowId(), draft.officialJobId()).stream().findFirst();
     if (existing.isPresent()) {
+      Job previous = findById(existing.get());
+      if (conflicts(previous.city(), draft.city()) || conflicts(previous.officialJobId(), draft.officialJobId()))
+        throw new IllegalStateException("Source row conflicts with published location/official job ID; preserve both for review");
       jdbc.update("""
           UPDATE jobs SET company_type=?,company_name=?,title=?,job_family=?,job_type=?,city=?,
           deadline=?,status='PUBLISHED',priority=?,tech_stack=?,certificate_requirements=?,source_id=?,
           source_url=?,apply_url=?,apply_method=?,requires_login=?,requires_captcha=?,source_trust_level=?,
-          jd=?,requirements=?,updated_at=CURRENT_TIMESTAMP WHERE id=?
+          jd=?,requirements=?,business_unit=?,campus_batch=?,source_row_id=?,official_job_id=?,dedupe_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=?
           """, draft.companyCategory(), draft.companyName(), draft.title(), draft.jobFamily(),
           draft.jobType(), draft.city(), draft.deadline(), draft.priority(), json.write(draft.techStack()),
           json.write(draft.certificateRequirements()), sourceId, draft.sourceUrl(), draft.applyUrl(),
           draft.applyMethod(), draft.requiresLogin(), draft.requiresCaptcha(), draft.sourceTrust(),
-          draft.jd(), draft.requirements(), existing.get());
+          draft.jd(), draft.requirements(), draft.businessUnit(), draft.recruitmentYear(), draft.sourceRowId(), draft.officialJobId(), draft.dedupeKey(), existing.get());
       return new SavedJob(findById(existing.get()), false);
     }
     jdbc.update("""
         INSERT INTO jobs (company_type,company_name,title,job_family,job_type,city,deadline,status,
         priority,tech_stack,certificate_requirements,source_id,source_url,apply_url,apply_method,
-        requires_login,requires_captcha,source_trust_level,jd,requirements,dedupe_key)
-        VALUES (?,?,?,?,?,?,?,'PUBLISHED',?,?,?,?,?,?,?,?,?,?,?,?,?)
+        requires_login,requires_captcha,source_trust_level,jd,requirements,dedupe_key,business_unit,campus_batch,source_row_id,official_job_id)
+        VALUES (?,?,?,?,?,?,?,'PUBLISHED',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, draft.companyCategory(), draft.companyName(), draft.title(), draft.jobFamily(),
         draft.jobType(), draft.city(), draft.deadline(), draft.priority(), json.write(draft.techStack()),
         json.write(draft.certificateRequirements()), sourceId, draft.sourceUrl(), draft.applyUrl(),
         draft.applyMethod(), draft.requiresLogin(), draft.requiresCaptcha(), draft.sourceTrust(),
-        draft.jd(), draft.requirements(), draft.dedupeKey());
+        draft.jd(), draft.requirements(), draft.dedupeKey(), draft.businessUnit(), draft.recruitmentYear(), draft.sourceRowId(), draft.officialJobId());
     long id = jdbc.queryForObject("SELECT last_insert_rowid()", Long.class);
     return new SavedJob(findById(id), true);
   }
@@ -91,6 +112,13 @@ public class JobRepository {
     if (value == null || value.isBlank()) return; where.append(" AND ").append(sql);
     for (int i = 0; i < copies; i++) args.add(copies == 3 ? "%" + value + "%" : (sql.contains("LIKE") ? "%" + value + "%" : value));
   }
+  private static Integer cohort(String value) {
+    if (value == null || !value.matches("20\\d{2}")) return null;
+    return Integer.valueOf(value);
+  }
+  private static boolean conflicts(String oldValue, String newValue) {
+    return oldValue != null && !oldValue.isBlank() && newValue != null && !newValue.isBlank() && !oldValue.equals(newValue);
+  }
   private static Double nullableDouble(java.sql.ResultSet rs, String column) throws java.sql.SQLException {
     double value = rs.getDouble(column); return rs.wasNull() ? null : value;
   }
@@ -99,13 +127,21 @@ public class JobRepository {
   }
   public record JobFilter(String keyword, String companyCategory, String company, String jobType, String city,
       String techStack, String certificate, String deadlineFrom, String deadlineTo, String sourceTrust,
-      String changedSince, int page, int pageSize) {}
+      String changedSince, int page, int pageSize, String businessUnit, String title, String recruitmentYear) {
+    public JobFilter(String keyword, String companyCategory, String company, String jobType, String city,
+        String techStack, String certificate, String deadlineFrom, String deadlineTo, String sourceTrust,
+        String changedSince, int page, int pageSize) {
+      this(keyword, companyCategory, company, jobType, city, techStack, certificate, deadlineFrom,
+          deadlineTo, sourceTrust, changedSince, page, pageSize, null, null, null);
+    }
+  }
   public record Page(List<Job> items, int page, int pageSize, int total) {}
   public record JobDraft(
       String companyCategory, String companyName, String title, String jobFamily, String jobType,
       String city, String deadline, int priority, List<String> techStack,
       List<String> certificateRequirements, String sourceUrl, String applyUrl, String applyMethod,
       boolean requiresLogin, boolean requiresCaptcha, String sourceTrust, String jd,
-      String requirements, String dedupeKey) {}
+      String requirements, String dedupeKey, String businessUnit, Integer recruitmentYear, String sourceRowId, String officialJobId,
+      String preUpgradeDedupeKey) {}
   public record SavedJob(Job job, boolean created) {}
 }

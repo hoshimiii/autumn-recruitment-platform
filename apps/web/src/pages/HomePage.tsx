@@ -8,9 +8,9 @@ import { JobTable } from "../features/jobs/JobTable";
 import { PageHeader } from "../features/layout/PageHeader";
 import type { AppRoute } from "../routing/routes";
 
-type Props = { hrefFor: (path: AppRoute) => string; onNavigate: (path: AppRoute) => void };
+type Props = { hrefFor: (path: AppRoute) => string; onNavigate: (path: AppRoute) => void; canReview?: boolean };
 
-export function HomePage({ hrefFor, onNavigate }: Props) {
+export function HomePage({ hrefFor, onNavigate, canReview = false }: Props) {
   const [filters, setFilters] = useState<JobFilterState>(() => readJobFilters());
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedId, setSelectedId] = useState<EntityId | null>(null);
@@ -47,7 +47,7 @@ export function HomePage({ hrefFor, onNavigate }: Props) {
     <PageHeader title="岗位展示" description="每日已发布岗位，按条件筛选并查看完整来源证据。" actions={<>
       <a className="icon-button secondary-button" aria-label="导出 Markdown" href={exportHref("md", filters)} title="导出 Markdown"><Download size={16} /></a>
       <a className="icon-button secondary-button" aria-label="导出 Excel" href={exportHref("xlsx", filters)} title="导出 Excel"><Download size={16} /></a>
-      <a className="button-link" href={hrefFor("/ops/review")} onClick={(event) => { event.preventDefault(); onNavigate("/ops/review"); }}>进入复核</a>
+      {canReview && <a className="button-link" href={hrefFor("/ops/review")} onClick={(event) => { event.preventDefault(); onNavigate("/ops/review"); }}>进入复核</a>}
     </>} />
     <section className="summary-band" aria-label="岗位概览">{summary.map(([label, value]) => <div className="summary-item" key={label}><span>{label}</span><strong>{value}</strong></div>)}</section>
     <JobFilters jobs={jobs} filters={filters} onChange={updateFilters} />

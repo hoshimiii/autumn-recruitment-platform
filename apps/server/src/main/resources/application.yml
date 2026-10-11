@@ -3,11 +3,12 @@ spring:
     url: jdbc:sqlite:./data/recruitment.sqlite
     driver-class-name: org.sqlite.JDBC
     hikari:
-      maximum-pool-size: 1
+      maximum-pool-size: 4
       minimum-idle: 1
   flyway:
     locations: classpath:db/migration
 server:
+  address: ${RECRUITOPS_BIND_ADDRESS:127.0.0.1}
   error:
     whitelabel:
       enabled: false

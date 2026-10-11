@@ -18,6 +18,15 @@ Stores collection task runs.
 
 Key fields: `id`, `source_id`, `trigger_type`, `status`, `started_at`, `finished_at`, `discovered_count`, `review_item_count`, `error_count`, `error_summary`.
 
+## `agent_settings`
+
+Stores one global optional Agent workflow configuration.
+
+Key fields: `id`, `enabled`, `base_url`, `secret_env_ref`, `scan_model`,
+`scan_reasoning_effort`, `process_model`, `process_reasoning_effort`,
+`timeout_seconds`, `config_version`, `updated_at`. The provider key value is never
+stored in SQLite.
+
 ## `review_items`
 
 Stores candidate jobs or changes pending review.
@@ -50,3 +59,25 @@ Key fields: `id`, `platform`, `company_name`, `job_title`, `search_keywords`, `s
 Stores review and state-transition history.
 
 Key fields: `id`, `entity_type`, `entity_id`, `action`, `before_payload`, `after_payload`, `notes`, `created_at`.
+
+## Incremental backend enhancements
+
+V6 adds `jobs.source_row_id` and `jobs.official_job_id`. The existing
+`business_unit` represents optional department and `campus_batch` stores the
+optional graduation cohort exposed as integer `recruitmentYear`; absence stays
+null. Review payloads and snapshots preserve original extraction evidence.
+
+`browser_source_policies` stores explicit visible-browser approval tied to source
+config version. `browser_tasks` stores row/character budgets,
+current worker/lease token, lease expiry, status and accepted result hash. Task
+completion is transactional and replay-safe; company rows become manual records
+and independently evidenced roles become `PENDING_REVIEW` candidates.
+`browser_source_pacing` reserves source-wide read times across worker processes;
+`browser_ingestion_evidence` preserves immutable row evidence and unique replay
+identity/content versions with links to the created pending records.
+
+V7 adds `review_items.review_version` for competing review claims and
+`job_projection_outbox` for SQL-triggered published-job insert/update/delete
+events. Monotonic event IDs fence ES versions and form Redis cache generations.
+Pending events remain durable until successful projection refresh. Redis and ES
+are derived components; optional analytics has a separate synthetic dataset.

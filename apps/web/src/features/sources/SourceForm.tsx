@@ -57,12 +57,8 @@ export function SourceForm({ source, onCancel, onSave }: {
     </div>
     {value.mode !== "MANUAL" ? <><JsonField label="Selectors" value={value.selectors ?? "{}"} onChange={(next) => update("selectors", next)} />
       <JsonField label="字段映射" value={value.fieldMapping ?? "{}"} onChange={(next) => update("fieldMapping", next)} /></> : null}
-    <label className="check-label"><input aria-label="记录 AI 配置" type="checkbox" checked={value.aiEnabled} onChange={(event) => update("aiEnabled", event.target.checked)} />记录 AI 配置（当前不执行）</label>
-    {value.aiEnabled ? <div className="form-grid">
-      <Field label="AI Provider" value={value.aiProvider ?? ""} onChange={(next) => update("aiProvider", next)} />
-      <Field label="AI Model" value={value.aiModel ?? ""} onChange={(next) => update("aiModel", next)} />
-      <Field label="密钥环境变量引用" value={value.secretEnvRef ?? ""} onChange={(next) => update("secretEnvRef", next)} />
-    </div> : null}<div className="form-actions"><button disabled={saving} type="submit">{saving ? "保存中" : "保存来源"}</button><button className="secondary-button" disabled={saving} type="button" onClick={onCancel}>取消</button></div>
+    <label className="check-label"><input aria-label="使用全局 Agent 工作流" type="checkbox" checked={value.aiEnabled} onChange={(event) => update("aiEnabled", event.target.checked)} />使用全局 Agent 工作流</label>
+    <div className="form-actions"><button disabled={saving} type="submit">{saving ? "保存中" : "保存来源"}</button><button className="secondary-button" disabled={saving} type="button" onClick={onCancel}>取消</button></div>
     {error ? <p className="form-error" role="alert">{error}</p> : null}</form>
   </section>;
 }
@@ -82,7 +78,6 @@ function validate(value: SourceInput, canEnable: boolean): string | undefined {
   if (!value.name || !value.companyCategory || !isHttpUrl(value.baseUrl) || !isHttpUrl(value.listUrl)) return "请填写来源名称、官网 URL、列表 URL，并选择企业分类。";
   if (value.enabled && !canEnable) return "只有已记录条款 URL 和确认时间的 ALLOWED 来源可以启用。";
   if (value.mode !== "MANUAL" && (!isJsonObject(value.selectors) || !isJsonObject(value.fieldMapping))) return "Selectors 和字段映射必须是 JSON 对象。";
-  if (value.secretEnvRef && !/^[A-Z][A-Z0-9_]*$/u.test(value.secretEnvRef)) return "密钥环境变量引用必须是大写环境变量名，不能填写明文 token。";
   return undefined;
 }
 

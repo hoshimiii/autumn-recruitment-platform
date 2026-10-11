@@ -51,7 +51,8 @@ public class McpJobToolRegistry {
         Map.entry("city", Map.of("type", "string")), Map.entry("techStack", Map.of("type", "string")),
         Map.entry("certificate", Map.of("type", "string")), Map.entry("deadlineFrom", Map.of("type", "string")),
         Map.entry("deadlineTo", Map.of("type", "string")), Map.entry("sourceTrust", Map.of("type", "string")),
-        Map.entry("changedSince", Map.of("type", "string"))), List.of(), false, null, null);
+        Map.entry("changedSince", Map.of("type", "string")), Map.entry("businessUnit", Map.of("type", "string")),
+        Map.entry("title", Map.of("type", "string")), Map.entry("recruitmentYear", Map.of("type", "integer"))), List.of(), false, null, null);
     McpSchema.Tool definition = McpSchema.Tool.builder().name(name).description(description).inputSchema(schema).build();
     return new SyncToolSpecification(definition, (exchange, request) -> result(action, request.arguments() == null ? Map.of() : request.arguments()));
   }
@@ -73,7 +74,8 @@ public class McpJobToolRegistry {
   private JobRepository.JobFilter filter(Map<String, Object> values) {
     return new JobRepository.JobFilter(string(values, "keyword"), string(values, "companyCategory"), string(values, "company"), string(values, "jobType"),
         string(values, "city"), string(values, "techStack"), string(values, "certificate"), string(values, "deadlineFrom"), string(values, "deadlineTo"),
-        string(values, "sourceTrust"), string(values, "changedSince"), 1, 100);
+        string(values, "sourceTrust"), string(values, "changedSince"), 1, 100,
+        string(values, "businessUnit"), string(values, "title"), string(values, "recruitmentYear"));
   }
 
   private long id(Map<String, Object> values) { try { return Long.parseLong(String.valueOf(values.get("id"))); } catch (Exception error) { throw new IllegalArgumentException("id must be a number"); } }

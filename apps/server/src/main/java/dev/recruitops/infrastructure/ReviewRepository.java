@@ -43,8 +43,18 @@ public class ReviewRepository {
               nullableLong(rs, "duplicate_job_id"), rs.getString("created_at"));
         }, id).stream().findFirst();
   }
-  public void publish(long id, long jobId, String payload) { jdbc.update("UPDATE review_items SET status='PUBLISHED',published_job_id=?,normalized_payload=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", jobId, payload, id); }
-  public void transition(long id, ReviewStatus status, String notes) { jdbc.update("UPDATE review_items SET status=?,review_notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", status.name(), notes, id); }
+  public boolean claimPending(long id) {
+    return jdbc.update("UPDATE review_items SET review_version=review_version+1 WHERE id=? AND status='PENDING_REVIEW'", id) == 1;
+  }
+  public void publish(long id, long jobId, String payload) {
+    requireChanged(jdbc.update("UPDATE review_items SET status='PUBLISHED',published_job_id=?,normalized_payload=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_REVIEW'", jobId, payload, id));
+  }
+  public void transition(long id, ReviewStatus status, String notes) {
+    requireChanged(jdbc.update("UPDATE review_items SET status=?,review_notes=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_REVIEW'", status.name(), notes, id));
+  }
+  private void requireChanged(int changed) {
+    if (changed != 1) throw new IllegalStateException("Review item has already been decided");
+  }
   public void audit(long id, String action, String before, String after, String notes) { jdbc.update("INSERT INTO audit_logs (entity_type,entity_id,action,before_payload,after_payload,notes) VALUES ('REVIEW_ITEM',?,?,?,?,?)", id, action, before, after, notes); }
   public void snapshot(long jobId, long sourceId, String sourceUrl, String contentHash,
                        String rawContent, String payload) {

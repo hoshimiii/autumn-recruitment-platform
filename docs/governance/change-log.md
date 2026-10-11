@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-07-26
+
+- Added singleton local Sub2API Agent settings, non-billable model-catalog checks,
+  and a manual settings panel under `/ops/config`.
+- Added optional scanner evidence and processor enrichment behind global and
+  source switches, with deterministic fallback and review-only publication flow.
+
 ## 2026-06-28
 
 - Added runnable MVP foundation for the local-first autumn recruitment platform.

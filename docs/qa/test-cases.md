@@ -12,6 +12,19 @@
 - Company and title whitespace are trimmed.
 - Configured array or delimited tech-stack and certificate values normalize to lists.
 
+## Agent Workflow
+
+- Settings default to disabled local Sub2API routing with Terra high scanning and
+  Codex Spark processing.
+- Settings accept only a loopback `/v1` endpoint and an environment-variable name.
+- API responses expose only `secretConfigured`, never the secret value.
+- Connectivity checks parse `/models`, report absent models, and never call a model.
+- Global or source disablement skips Agent calls.
+- Valid scanner/processor JSON is validated by the deterministic normalizer.
+- Processor output cannot replace company/title identity, source URL, or application URL.
+- Provider, timeout, and malformed output failures preserve deterministic candidates
+  with fallback evidence.
+
 ## Deduplication
 
 - Canonical source URL and content hash identify exact repeats.
@@ -33,4 +46,4 @@
 ## Persistence
 
 - SQLite stores jobs, sources, runs, review items, snapshots, manual items, and audit logs.
-- Flyway upgrades an existing V3 database to V4 without changing the V3 checksum.
+- Flyway upgrades an existing V4 database to V5 without changing published migration checksums.

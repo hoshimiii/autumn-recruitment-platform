@@ -1,0 +1,19 @@
+{
+  "realm": "recruitops",
+  "enabled": true,
+  "roles": {"realm": [{"name":"VIEWER"},{"name":"COLLECTOR"},{"name":"REVIEWER"},{"name":"ADMIN"}]},
+  "clients": [{
+    "clientId": "recruitops-web",
+    "enabled": true,
+    "protocol": "openid-connect",
+    "publicClient": false,
+    "standardFlowEnabled": true,
+    "directAccessGrantsEnabled": false,
+    "redirectUris": ["http://127.0.0.1:8080/login/oauth2/code/recruitops"],
+    "webOrigins": ["http://127.0.0.1:5173"],
+    "protocolMappers": [
+      {"name":"application-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-realm-role-mapper","config":{"claim.name":"realm_access.roles","jsonType.label":"String","multivalued":"true","id.token.claim":"true","access.token.claim":"true","userinfo.token.claim":"false"}},
+      {"name":"application-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","config":{"included.custom.audience":"recruitops-api","id.token.claim":"false","access.token.claim":"true"}}
+    ]
+  }]
+}

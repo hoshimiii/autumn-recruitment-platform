@@ -12,22 +12,27 @@ import dev.recruitops.infrastructure.MissingResourceException;
 import dev.recruitops.infrastructure.ReviewRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReviewService {
   private final ReviewRepository reviews; private final JobRepository jobs; private final JsonValues json;
   public ReviewService(ReviewRepository reviews, JobRepository jobs, JsonValues json) { this.reviews = reviews; this.jobs = jobs; this.json = json; }
+  @PreAuthorize("@operationAuthorizer.can('REVIEWER')")
   public List<ReviewView> list() { return reviews.list(); }
+  @PreAuthorize("@operationAuthorizer.can('REVIEWER')")
   public ReviewDetail detail(long id) {
     return reviews.detail(id)
         .orElseThrow(() -> new MissingResourceException("Review item not found"));
   }
   @Transactional
+  @PreAuthorize("@operationAuthorizer.can('REVIEWER')")
   public Job approve(long id, JsonNode edited) {
+    boolean claimed = reviews.claimPending(id);
     ReviewItem item = item(id);
     if (item.status() == ReviewStatus.PUBLISHED && item.publishedJobId() != null) return jobs.find(item.publishedJobId()).orElseThrow();
-    if (item.status() != ReviewStatus.PENDING_REVIEW) throw new IllegalStateException("Review item is not pending");
+    if (!claimed || item.status() != ReviewStatus.PENDING_REVIEW) throw new IllegalStateException("Review item is not pending");
     JsonNode payload = edited == null || edited.isNull() ? item.normalizedPayload() : edited;
     JobRepository.JobDraft draft = draft(payload, item);
     JobRepository.SavedJob saved = jobs.upsert(draft, item.sourceId());
@@ -40,11 +45,14 @@ public class ReviewService {
     return jobs.find(job.id()).orElseThrow();
   }
   @Transactional
+  @PreAuthorize("@operationAuthorizer.can('REVIEWER')")
   public ReviewItem reject(long id, String reason) { return transition(id, ReviewStatus.REJECTED, reason, "REJECTED"); }
   @Transactional
+  @PreAuthorize("@operationAuthorizer.can('REVIEWER')")
   public ReviewItem block(long id, String reason) { return transition(id, ReviewStatus.BLOCKED, reason, "BLOCKED"); }
   private ReviewItem transition(long id, ReviewStatus status, String reason, String action) {
-    ReviewItem item = item(id); if (item.status() != ReviewStatus.PENDING_REVIEW) throw new IllegalStateException("Review item is not pending");
+    boolean claimed = reviews.claimPending(id);
+    ReviewItem item = item(id); if (!claimed || item.status() != ReviewStatus.PENDING_REVIEW) throw new IllegalStateException("Review item is not pending");
     reviews.transition(id, status, reason); reviews.audit(id, action, item.status().name(), status.name(), reason); return item(id);
   }
   private ReviewItem item(long id) { return reviews.find(id).orElseThrow(() -> new MissingResourceException("Review item not found")); }
@@ -56,7 +64,15 @@ public class ReviewService {
         required(node, "sourceUrl"), text(node, "applyUrl"), text(node, "applyMethod"),
         bool(node, "requiresLogin"), bool(node, "requiresCaptcha"),
         required(node, "sourceTrust", "sourceTrustLevel"), text(node, "jd"),
-        text(node, "requirements"), item.dedupeKey() == null ? "review:" + item.id() : item.dedupeKey());
+        text(node, "requirements"), CandidateNormalizer.identity(item.sourceId(), node),
+        text(node, "businessUnit"), cohort(node), text(node, "sourceRowId"), text(node, "officialJobId"),
+        CandidateNormalizer.preUpgradeIdentity(node));
+  }
+  private Integer cohort(JsonNode node) {
+    String value = text(node, "recruitmentYear");
+    if (value == null || value.isBlank()) return null;
+    if (!value.matches("20\\d{2}")) throw new IllegalArgumentException("Invalid recruitmentYear");
+    return Integer.valueOf(value);
   }
   private String required(JsonNode node, String... keys) {
     for (String key : keys) { String value = text(node, key); if (value != null && !value.isBlank()) return value; }

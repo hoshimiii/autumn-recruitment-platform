@@ -58,4 +58,9 @@
 - DNS addresses must remain public and stable across the request boundary.
 - Robots denial, login/captcha detection, and `401`, `403`, or `429` stop the source run.
 - Plaintext AI/API tokens are never stored or returned; only environment-variable references are persisted.
-- AI settings are metadata-only in this delivery and never initiate network calls.
+- Agent execution is disabled by default and requires global plus source enablement.
+- The connectivity check only reads the provider model catalog and does not invoke a model.
+- Agent output is treated as untrusted input, schema-validated, and routed through
+  deterministic candidate validation before review.
+- Provider, timeout, model, or output failures preserve deterministic candidates
+  and record fallback evidence instead of publishing or dropping data silently.

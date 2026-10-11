@@ -24,7 +24,8 @@ Java replacement passed integration and browser acceptance.
 - Spring JDBC: explicit SQL and predictable SQLite behavior.
 - Flyway: ordered schema migrations.
 - Xerial SQLite JDBC: local persistence.
-- JDK `HttpClient`: bounded requests, timeouts, redirects, and conditional headers.
+- JDK `HttpClient`: bounded requests, timeouts, redirects, conditional headers,
+  and optional local Sub2API requests.
 - jsoup: static HTML extraction with configured CSS selectors.
 - Apache POI: `.xlsx` export.
 - Official MCP Java SDK: local STDIO server.
@@ -61,6 +62,7 @@ configured source
   -> robots check
   -> bounded fetch
   -> JSON or HTML adapter
+  -> optional scanner and processor Agents
   -> normalization and content hash
   -> snapshot and dedupe
   -> review candidate
@@ -85,6 +87,26 @@ configured source
 - Every run receives its own status and error summary.
 
 Adapters receive fetched content; they cannot perform arbitrary network requests.
+
+## Agent Contract
+
+- One singleton `agent_settings` row stores enablement, a loopback `/v1` base URL,
+  scanner/processor models and reasoning levels, timeout, and a secret environment
+  variable name.
+- `GET /models` is the only connectivity check and does not invoke a model.
+- Model calls use OpenAI-compatible non-streaming Responses requests with redirects
+  disabled, bounded input/output, and a Bearer value resolved only from the process
+  environment.
+- Agent execution requires global and source enablement. Scanner output is review
+  evidence and never drops adapter candidates; processor output can populate only
+  `jobFamily`, `jobType`, `city`, `deadline`, `jd`, `requirements`, `applyMethod`,
+  `techStack`, `certificateRequirements`, `priority`, `requiresLogin`, and
+  `requiresCaptcha`. It cannot replace company/title identity or source/application URLs.
+- Agent output is untrusted JSON. The existing deterministic normalizer validates
+  required fields and URLs; any provider or validation error falls back to the
+  original adapter candidate with bounded fallback evidence.
+- Agent configuration and results never bypass source policy, review, or publication
+  rules.
 
 ## Review and Publication Contract
 

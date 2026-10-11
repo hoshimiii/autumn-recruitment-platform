@@ -30,7 +30,7 @@ Initial coverage:
 - Run one source or the daily collection workflow.
 - See blocked, failed, duplicate, and low-confidence candidates.
 - Inspect and approve a candidate or reject it with an audit trail.
-- Record optional future AI configuration without exposing secrets.
+- Configure an optional local Agent workflow without exposing secrets.
 
 ## Functional Scope
 
@@ -47,7 +47,10 @@ Initial coverage:
 - Supports `JSON`, `HTML`, and `MANUAL` modes in the first delivery.
 - Stores source identity, trust level, category, URLs, parser mode, request limits,
   selectors or field mappings, robots/terms evidence, and enabled state.
-- Optional AI configuration stores a secret reference, never a plaintext token.
+- Stores one global Sub2API endpoint, scanner and processor models, reasoning
+  levels, and a secret environment-variable reference, never a plaintext token.
+- Agent execution requires both the global switch and the source switch. It is
+  disabled by default and a model-catalog check never invokes a model.
 - A source can be tested without publishing data.
 
 ### Collection workflow
@@ -55,10 +58,13 @@ Initial coverage:
 1. Validate source policy and URL boundary.
 2. Check robots policy and source state.
 3. Fetch the bounded list/feed using conditional requests where available.
-4. Extract and normalize candidate fields.
-5. Deduplicate by source URL and business identity; detect changed content.
-6. Route uncertain or changed data to review.
-7. Publish only after approval and preserve source evidence.
+4. Extract candidate fields with the configured adapter.
+5. When explicitly enabled, attach scanner evidence and map enrichment fields
+   with the processor Agent; scanning never drops candidates, and invalid or
+   failed Agent output falls back to the deterministic candidate.
+6. Deduplicate by source URL and business identity; detect changed content.
+7. Route all new, uncertain, or changed data to review.
+8. Publish only after approval and preserve source evidence.
 
 ### Review and operations
 
@@ -76,12 +82,14 @@ Initial coverage:
 
 ## Standard Job Template
 
-The canonical Markdown/Excel template has the same 18 ordered fields:
+The canonical Markdown/Excel template has the same 22 ordered fields:
 
 `companyCategory`, `companyName`, `title`, `jobFamily`, `jobType`, `city`,
 `deadline`, `techStack`, `certificateRequirements`, `jd`, `requirements`,
 `applyUrl`, `sourceUrl`, `sourceTrust`, `capturedAt`, `confidence`,
-`reviewStatus`, and `updatedAt`.
+`reviewStatus`, `updatedAt`, `businessUnit`, `recruitmentYear`, `sourceRowId`,
+and `officialJobId`. The last four preserve optional department, graduation
+cohort and source/official identity; unknown values stay empty.
 
 ## Non-Goals
 
@@ -101,3 +109,7 @@ The canonical Markdown/Excel template has the same 18 ordered fields:
 - Markdown and Excel exports contain the standard fields and can be read back.
 - CLI and MCP return the same persisted records as REST.
 - All automated checks and browser acceptance pass from a clean checkout.
+
+## Authorized backend enhancement
+
+Implement SSO/RBAC, bounded browser-worker ingestion to pending review, concurrent SQL correctness, optional Redis/ES, and a standalone analytics demonstration. The binding contract and acceptance boundary are in ../trd/backend-showcase.md. Existing collection safety and no-resume-submission boundaries remain binding.

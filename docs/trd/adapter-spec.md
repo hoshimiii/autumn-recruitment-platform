@@ -21,7 +21,8 @@ deduplication, review creation, and run history.
 - JSON and HTML configuration must be JSON objects.
 - `{page}` is the only pagination placeholder.
 - Third-party leads require official verification before approval.
-- Attachments and AI extraction are manual-only in this delivery.
+- Attachments remain manual-only. Optional Agent analysis runs only after an
+  approved adapter has produced bounded candidates and cannot perform requests.
 
 ## Dedupe Inputs
 

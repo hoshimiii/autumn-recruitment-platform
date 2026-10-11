@@ -7,7 +7,7 @@ import { JobDetail } from "../features/jobs/JobDetail";
 const job = {
   id: 101, companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师",
   jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"],
-  certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放",
+  certificateRequirements: ["英语六级"], deadline: "2099-12-31", deadlineStatus: "开放",
   status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML",
   sourceUrl: "https://jobs.example/frontend", sourceTrust: "OFFICIAL", capturedAt: "2026-07-25T08:00:00Z",
   updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递",
@@ -25,7 +25,11 @@ const source = {
   etag: "etag-1", lastModified: "Fri, 25 Jul 2026 00:00:00 GMT", lastRunAt: undefined,
   lastStatus: undefined, aiEnabled: false, aiProvider: undefined, aiModel: undefined, configVersion: 3
 };
-
+const agentSettings = {
+  enabled: false, baseUrl: "http://127.0.0.1:18080/v1", secretEnvRef: "SUB2API_KEY", secretConfigured: true,
+  scanModel: "gpt-5.6-terra", scanReasoningEffort: "high", processModel: "gpt-5.3-codex-spark",
+  processReasoningEffort: "medium", timeoutSeconds: 20, configVersion: 1, updatedAt: "2026-07-26T08:00:00Z"
+};
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
@@ -34,9 +38,13 @@ function mockApi(overrides: Record<string, Response> = {}, reviewItems: unknown[
   return vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     const url = String(input);
     if (overrides[`${init?.method ?? "GET"} ${url}`] ?? overrides[url]) return Promise.resolve(overrides[`${init?.method ?? "GET"} ${url}`] ?? overrides[url]);
+    if (url.includes("/auth/session")) return Promise.resolve(json({ mode: "local", authenticated: true,
+      roles: ["ADMIN"], capabilities: ["VIEWER", "COLLECTOR", "REVIEWER", "ADMIN"], csrfToken: "", csrfHeader: "",
+      loginUrl: "", logoutUrl: "" }));
     if (url.includes("/jobs/101")) return Promise.resolve(json(job));
     if (url.includes("/jobs")) return Promise.resolve(json({ items: [job], page: 1, pageSize: 50, total: 1 }));
     if (url.includes("/sources")) return Promise.resolve(json([]));
+    if (url.includes("/agent-settings")) return Promise.resolve(json(agentSettings));
     if (url.includes("/review-items/") && init?.method === "POST") return Promise.resolve(new Response(null, { status: 204 }));
     if (/\/review-items\/\d+$/u.test(url)) return Promise.resolve(json({
       ...(reviewItems[0] as Record<string, unknown>),
@@ -53,12 +61,10 @@ function mockApi(overrides: Record<string, Response> = {}, reviewItems: unknown[
     return Promise.resolve(json({}));
   });
 }
-
 describe("API-driven micro frontend", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
   });
-
   afterEach(() => vi.restoreAllMocks());
 
   it("loads published jobs from REST and fetches the selected detail", async () => {
@@ -78,12 +84,10 @@ describe("API-driven micro frontend", () => {
     expect(await screen.findByText("负责 React 前端开发")).toBeInTheDocument();
     expect(screen.getByText(/熟悉 TypeScript\s+具备工程化经验/)).toHaveClass("requirements-text");
   });
-
   it("shows an empty state when job requirements are missing", () => {
     render(<JobDetail job={{ ...job, requirements: undefined }} />);
     expect(screen.getByText("暂无岗位要求。")).toBeInTheDocument();
   });
-
   it("persists filters in the URL and restores them after remount", async () => {
     mockApi();
     const view = render(<App />);
@@ -96,7 +100,6 @@ describe("API-driven micro frontend", () => {
 
     expect(screen.getByLabelText("关键词")).toHaveValue("云澜");
   });
-
   it("renders visible empty and API error states", async () => {
     mockApi({ "/api/v1/jobs?page=1&pageSize=50&sort=updatedAt%2Cdesc": json({ items: [], page: 1, pageSize: 50, total: 0 }) });
     const view = render(<App />);
@@ -108,30 +111,41 @@ describe("API-driven micro frontend", () => {
     render(<App />);
     expect(await screen.findByRole("alert")).toHaveTextContent("数据库不可用");
   });
-
-  it("validates agent secret references and never accepts a plaintext token", async () => {
-    mockApi();
+  it("reads, saves, and checks global Agent settings without storing a token", async () => {
+    const fetchMock = mockApi({
+      "/api/v1/agent-settings": json(agentSettings),
+      "PUT /api/v1/agent-settings": json({ ...agentSettings, enabled: true, secretEnvRef: "LOCAL_SUB2API_KEY" }),
+      "POST /api/v1/agent-settings/check": json({ connected: true, secretConfigured: true, models: ["gpt-5.3-codex-spark"], scanModelAvailable: false, processModelAvailable: true, message: "已连接" })
+    });
     window.history.replaceState({}, "", "/ops/config");
     render(<App />);
-    await screen.findByRole("heading", { name: "来源配置" });
+    expect(await screen.findByRole("heading", { name: "配置中心" })).toBeInTheDocument();
+    expect(await screen.findByLabelText("密钥环境变量名")).toHaveValue("SUB2API_KEY");
+    fireEvent.click(screen.getByLabelText("启用全局 Agent 工作流"));
+    fireEvent.change(screen.getByLabelText("密钥环境变量名"), { target: { value: "LOCAL_SUB2API_KEY" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存 Agent 设置" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/agent-settings", expect.objectContaining({ method: "PUT", body: expect.stringContaining('"secretEnvRef":"LOCAL_SUB2API_KEY"') })));
+    fireEvent.click(screen.getByRole("button", { name: "检查连接" }));
+    expect(await screen.findByText("扫描模型未出现在目录中。" )).toBeInTheDocument();
+    expect(screen.getByText("处理模型可用。" )).toBeInTheDocument();
+    expect(screen.getByText("已发现模型：gpt-5.3-codex-spark")).toBeInTheDocument();
+  });
 
+  it("sends source aiEnabled from the global Agent workflow checkbox", async () => {
+    const fetchMock = mockApi({ "POST /api/v1/sources": json({ ...source, id: 12, aiEnabled: true }, 201) });
+    window.history.replaceState({}, "", "/ops/config"); render(<App />); await screen.findByRole("heading", { name: "配置中心" });
     fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
-    fireEvent.change(screen.getByLabelText("来源名称"), { target: { value: "官网" } });
-    fireEvent.change(screen.getByLabelText("官网 URL"), { target: { value: "https://jobs.example" } });
-    fireEvent.change(screen.getByLabelText("列表 URL"), { target: { value: "https://jobs.example/jobs" } });
-    fireEvent.change(screen.getByLabelText("企业分类"), { target: { value: "INTERNET_BIG_TECH" } });
-    fireEvent.click(screen.getByLabelText("记录 AI 配置"));
-    fireEvent.change(screen.getByLabelText("密钥环境变量引用"), { target: { value: "plain-token" } });
-    fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("环境变量引用");
+    fireEvent.change(screen.getByLabelText("来源名称"), { target: { value: "官网" } }); fireEvent.change(screen.getByLabelText("官网 URL"), { target: { value: "https://jobs.example" } });
+    fireEvent.change(screen.getByLabelText("列表 URL"), { target: { value: "https://jobs.example/jobs" } }); fireEvent.change(screen.getByLabelText("企业分类"), { target: { value: "INTERNET_BIG_TECH" } });
+    fireEvent.click(screen.getByLabelText("使用全局 Agent 工作流")); fireEvent.click(screen.getByRole("button", { name: "保存来源" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/v1/sources", expect.objectContaining({ method: "POST", body: expect.stringContaining('"aiEnabled":true') })));
   });
 
   it("keeps an unknown new source disabled when it is saved", async () => {
     const fetchMock = mockApi();
     window.history.replaceState({}, "", "/ops/config");
     render(<App />);
-    await screen.findByRole("heading", { name: "来源配置" });
+    await screen.findByRole("heading", { name: "配置中心" });
 
     fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
     expect(screen.getByLabelText("启用来源")).not.toBeChecked();
@@ -151,7 +165,7 @@ describe("API-driven micro frontend", () => {
     const fetchMock = mockApi({ "POST /api/v1/sources": json({ ...source, id: 12 }, 201) });
     window.history.replaceState({}, "", "/ops/config");
     render(<App />);
-    await screen.findByRole("heading", { name: "来源配置" });
+    await screen.findByRole("heading", { name: "配置中心" });
 
     fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
     fireEvent.change(screen.getByLabelText("来源名称"), { target: { value: "腾讯招聘" } });
@@ -176,7 +190,7 @@ describe("API-driven micro frontend", () => {
     mockApi();
     window.history.replaceState({}, "", "/ops/config");
     render(<App />);
-    await screen.findByRole("heading", { name: "来源配置" });
+    await screen.findByRole("heading", { name: "配置中心" });
     fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
 
     expect(screen.getByLabelText("启用来源")).toBeDisabled();
@@ -205,7 +219,7 @@ describe("API-driven micro frontend", () => {
     mockApi();
     window.history.replaceState({}, "", "/ops/config");
     render(<App />);
-    await screen.findByRole("heading", { name: "来源配置" });
+    await screen.findByRole("heading", { name: "配置中心" });
     fireEvent.click(screen.getByRole("button", { name: "新增来源" }));
     fireEvent.change(screen.getByLabelText("采集模式"), { target: { value: "MANUAL" } });
     expect(screen.queryByLabelText("Selectors")).not.toBeInTheDocument();

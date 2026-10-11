@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 public class JobExportService {
   public static final List<String> COLUMNS = List.of("companyCategory", "companyName", "title", "jobFamily",
       "jobType", "city", "deadline", "techStack", "certificateRequirements", "jd", "requirements", "applyUrl",
-      "sourceUrl", "sourceTrust", "capturedAt", "confidence", "reviewStatus", "updatedAt");
+      "sourceUrl", "sourceTrust", "capturedAt", "confidence", "reviewStatus", "updatedAt", "businessUnit", "recruitmentYear", "sourceRowId", "officialJobId");
   private final JobService jobs;
 
   public JobExportService(JobService jobs) { this.jobs = jobs; }
@@ -57,12 +57,14 @@ public class JobExportService {
     return List.of(value(job.companyCategory()), value(job.companyName()), value(job.title()), value(job.jobFamily()),
         value(job.jobType()), value(job.city()), value(job.deadline()), joined(job.techStack()), joined(job.certificateRequirements()),
         value(job.jd()), value(job.requirements()), value(job.applyUrl()), value(job.sourceUrl()), value(job.sourceTrust()),
-        value(job.capturedAt()), job.confidence() == null ? "" : job.confidence().toString(), value(job.reviewStatus()), value(job.updatedAt()));
+        value(job.capturedAt()), job.confidence() == null ? "" : job.confidence().toString(), value(job.reviewStatus()), value(job.updatedAt()), value(job.businessUnit()),
+        job.recruitmentYear() == null ? "" : job.recruitmentYear().toString(), value(job.sourceRowId()), value(job.officialJobId()));
   }
 
   private JobRepository.JobFilter withPage(JobRepository.JobFilter filter, int page) {
     return new JobRepository.JobFilter(filter.keyword(), filter.companyCategory(), filter.company(), filter.jobType(), filter.city(),
-        filter.techStack(), filter.certificate(), filter.deadlineFrom(), filter.deadlineTo(), filter.sourceTrust(), filter.changedSince(), page, 100);
+        filter.techStack(), filter.certificate(), filter.deadlineFrom(), filter.deadlineTo(), filter.sourceTrust(), filter.changedSince(), page, 100,
+        filter.businessUnit(), filter.title(), filter.recruitmentYear());
   }
 
   private void write(org.apache.poi.ss.usermodel.Row row, List<String> values, CellStyle style) {
