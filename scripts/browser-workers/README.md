@@ -72,3 +72,21 @@ to manual records; ROLE additionally needs independently visible title, official
 job ID and JD, and goes to pending review. Human review controls publication.
 The UI can import a result from an already claimed task, with its current worker
 ID and lease token; arbitrary unleased JSON cannot publish or complete a task.
+
+Results must cover the entire assigned range: exactly `rowEnd-rowStart` rows and
+each zero-based index once. Empty, partial or duplicate-index results are rejected
+transactionally. The task list exposes status and range/budgets, never another
+worker's ID or lease token; the claimant obtains its credentials from `/claim`.
+
+Workers report ordinary operational failures through the fenced `/fail` endpoint:
+only that task becomes `FAILED`, and source approval and peer tasks remain usable.
+This includes missing rows/selectors, browser/network/time-budget failures,
+local provider errors and malformed extraction output. Confirmed access barriers
+use `/stop`: that task becomes `BLOCKED` and source approval is revoked so peers
+stop before further reads. Request-policy errors carry typed classification;
+401/403/429, login/CAPTCHA, robots denial, unapproved origin and copy/export
+restrictions remain source barriers. A same-origin redirect to an allowed URL
+is an operational failure requiring a corrected final URL; an unapproved or
+denied redirect remains a source barrier. Both paths immediately close the
+worker context. An unavailable robots/API check prevents forwarding but preserves
+approval; a previously revoked policy remains revoked.

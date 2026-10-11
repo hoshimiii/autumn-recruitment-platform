@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const job = { id: 101, companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师", jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"], certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放", status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML", sourceUrl: "https://jobs.example/frontend", sourceTrust: "P1", capturedAt: "2026-07-25T08:00:00Z", updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递", jd: "负责 React 前端开发", requirements: "熟悉 TypeScript", applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92 };
+const job = { id: 101, companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师", jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"], certificateRequirements: ["英语六级"], deadline: "2099-12-31", deadlineStatus: "开放", status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML", sourceUrl: "https://jobs.example/frontend", sourceTrust: "P1", capturedAt: "2026-07-25T08:00:00Z", updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递", jd: "负责 React 前端开发", requirements: "熟悉 TypeScript", applyMethod: "官网", requiresLogin: false, requiresCaptcha: false, confidence: 0.92 };
 
 async function mockApi(page: import("@playwright/test").Page) {
   await page.route("**/api/v1/**", async (route) => {
@@ -72,15 +72,15 @@ test("real source collection closes the review, display, and export loop", async
     data: {
       name: "齐鲁数科校招",
       type: "COMPANY",
-      baseUrl: "http://127.0.0.1:14350",
-      listUrl: "http://127.0.0.1:14350/jobs",
+      baseUrl: "http://127.0.0.1:24350",
+      listUrl: "http://127.0.0.1:24350/jobs",
       adapterType: "JSON",
       mode: "JSON",
       complianceStatus: "ALLOWED",
       trustLevel: "OFFICIAL",
       companyCategory: "SHANDONG_SOE",
       enabled: true,
-      termsUrl: "http://127.0.0.1:14350/terms",
+      termsUrl: "http://127.0.0.1:24350/terms",
       termsConfirmedAt: "2026-07-25T00:00:00Z",
       minIntervalSeconds: 0,
       maxPages: 1,

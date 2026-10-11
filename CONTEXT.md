@@ -10,6 +10,22 @@ mount/unmount. Full acceptance requires Java/frontend/browser/CLI/MCP/exports.
 
 ## Current Brief
 
+- Active review-fix and merge authorization (2026-10-11): user requested repair
+  of Codex findings followed by merging the same PR #1 into main. Scope only
+  legacy identity compatibility, browser failure classification, complete row
+  coverage and lease-token redaction, their contracts/tests and continuity.
+  Permitted: scoped edits/tests, ordinary push, review-thread resolution and
+  merge of the verified PR head. No force push, unrelated branch changes,
+  deployment, paid model, live scraping or operational DB mutation. Stop on
+  failing acceptance, new material finding, conflicts or unexpected remote head.
+  Completion: four findings addressed, checks passed, exact-head merge verified.
+
+- Review fixes accepted (2026-10-11): all four Codex findings repaired and a
+  fresh independent reviewer found no material issue. Full relevant acceptance
+  passed. PR #1 is the authoritative merge-status record; the local final
+  receipt is output/runtime/pr-merge-receipt.json (ignored). The merge proceeds
+  only after the remote head matches the verified repair commit.
+
 - Completed PR delivery authorization (2026-10-11): user explicitly requested a
   merge request for these changes. Target only GitHub repository
   hoshimiii/autumn-recruitment-platform, head codex/backend-showcase, base main.
@@ -32,7 +48,8 @@ mount/unmount. Full acceptance requires Java/frontend/browser/CLI/MCP/exports.
 - Authorization: user requested all four enhancements, staged implementation and
   Git commits. Local code, fixtures, test services, dependency downloads and scoped
   validation are permitted; the same-repository branch push and PR are now
-  explicitly authorized. No merge, deployment, paid model invocation,
+  explicitly authorized; merging PR #1 is covered by the active authorization
+  above. No deployment, paid model invocation,
   real Feishu collection, production database changes, or access-barrier bypass.
 - Original dirty worktree remains E:\codex-projects\autumn-recruitment-platform.
   Existing Agent settings/code/contracts copied and baseline committed as 57bc7dd.
@@ -65,12 +82,37 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 8. Runtime acceptance: actual Redis/ES, analytics and Keycloak passed; owned
    containers/network and Java processes removed. Live Feishu final URL/selectors
    and actual provider remain pending.
-9. Branch pushed and open PR #1 created against main, attached to this task:
+9. Branch pushed and PR #1 created against main, attached to this task:
    https://github.com/hoshimiii/autumn-recruitment-platform/pull/1
-   GitHub reports MERGEABLE/CLEAN, with no configured status checks. No merge done.
+   Its remote state records final merge status; no configured CI status checks.
+10. Four review findings repaired and independently accepted: preserve old job
+    IDs on exact same-source identity upgrades; isolate ordinary worker failures;
+    require complete row-index coverage; redact lease credentials from listings.
+    Java/frontend/worker/E2E and packaged CLI/MCP/export acceptance passed.
 
 ## Verification and Remaining Risk
 
+- Review-fix acceptance (2026-10-11): Java 91 tests, no failures/errors/skips,
+  fresh packaged JAR; frontend 28 tests, lint/typecheck/build; Playwright 3 tests
+  with real Java collection/review/publication/exports and visually inspected
+  desktop/mobile screenshots; browser workers 25 tests including real Chrome.
+  The identity regression includes a file-backed Flyway V4-to-V7 upgrade,
+  unchanged-job ID/history preservation and exact optional-identity isolation.
+  Browser regressions prove task-only failure versus source-level blocking,
+  transactional range rejection and claim-only lease disclosure.
+  Evidence: apps/server/target/review-final-java.log,
+  review-final-frontend-green.log, review-final-e2e-green.log;
+  output/browser-pr-node-green.log and browser-pr-java-green.log.
+- Fresh packaged CLI search and MCP STDIO passed; Java tests read back canonical
+  Markdown/XLSX. Two separate browser worker processes against the fresh Java
+  package and a local model-protocol stub completed two tasks, yielding one
+  manual item, one pending review and zero published jobs. Owned JVM stopped.
+  Evidence: apps/server/target/review-final-cli-green.log,
+  review-final-mcp.log and review-final-worker-smoke.log.
+- Review-fix fixture maintenance: use a future deadline to avoid a date-dependent
+  mock failure, and port24350 because Windows now reserves14214-14513. No machine
+  network settings changed. Actual Redis/ES/Keycloak/analytics evidence below
+  remains from2026-10-10; those unchanged runtimes were not repeated for this fix.
 - Final Java package: 83 tests, zero failures/errors/skips, 2026-10-10.
   Evidence: apps/server/target/final-java-package.log and surefire-reports.
 - Final frontend: 28 tests, typecheck/lint/build passed after exact filter changes.
@@ -116,8 +158,8 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 - npm audit: zero vulnerabilities after bounded lockfile-only compatible fixes.
 - Independent review fixes include generated-ID races, ES refresh-failed replay,
   per-request browser policy checks, logout CORS/CSRF and dataset namespaces.
-- Windows excluded port 8080 and old fixture port 14300; scoped fixture moved to
-  14350. README gives a process-only 18189 startup override. No machine network
+- Windows excluded port 8080 and old fixture ports14300/14350; scoped fixture
+  uses24350. README gives a process-only18189 startup override. No machine network
   settings changed. Owned fixture backends stopped; no acceptance-port listeners
   remain. Test data was in-memory and no operational database was changed.
 - Docker Engine29.3.1 now reachable after user startup. Actual Redis/ES acceptance
@@ -138,8 +180,8 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 
 ## Exact Next Action
 
-None for the authorized implementation, acceptance and PR delivery. PR #1 is
-ready for review; merging requires a separate instruction. Reproduce with
-infra/README.md and labs/analytics/run.ps1 smoke. The optional live-source phase
-needs an approved final public Feishu URL/policy/selectors and provider setup/cost
-authorization. No merge, deployment or operational DB migration done.
+No further implementation is required for these four findings. Deliver the
+verified repair commit through PR #1 under the active merge authorization;
+consult its remote state and the ignored merge receipt for final merge evidence.
+Optional live-source setup, deployment and operational database migration remain
+outside this action.

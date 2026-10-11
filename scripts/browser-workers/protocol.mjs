@@ -1,8 +1,9 @@
 const fieldLabels={Company:'companyName',Title:'title',Department:'businessUnit',Cohort:'recruitmentYear',City:'city',OfficialJobId:'officialJobId',JD:'jd',Requirements:'requirements',ApplyUrl:'applyUrl',JobType:'jobType',JobFamily:'jobFamily',Deadline:'deadline'};
+export class AccessBarrierError extends Error {}
 export function requireOrigin(value,origin) {
   const url=new URL(value);
-  if(url.origin!==origin || url.username || url.password) throw new Error('Unapproved origin');
-  if(/\/login|\/signin|captcha/i.test(url.pathname)) throw new Error('Access barrier URL');
+  if(url.origin!==origin || url.username || url.password) throw new AccessBarrierError('Unapproved origin');
+  if(/\/login|\/signin|captcha/i.test(url.pathname)) throw new AccessBarrierError('Access barrier URL');
   return url;
 }
 export function extractFixture(text) {
@@ -29,7 +30,12 @@ export async function extractWithProvider(visibleText,{baseUrl,token,model}) {
 export async function apiRequest(api,path,body) {
   const token=process.env.BROWSER_WORKER_TOKEN;
   const response=await fetch(`${api.replace(/\/$/,'')}${path}`,{method:body===undefined?'GET':'POST',redirect:'error',signal:AbortSignal.timeout(15_000),headers:{Accept:'application/json',...(body===undefined?{}:{'Content-Type':'application/json'}),...(token?{Authorization:`Bearer ${token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
-  if(!response.ok) throw new Error(`Worker API ${path} failed (${response.status}): ${(await response.text()).slice(0,500)}`);
+  if(!response.ok) {
+    const text=(await response.text()).slice(0,500);let code,message;
+    try { const body=JSON.parse(text);code=body.error?.code;message=body.error?.message; } catch { /* Non-JSON API outage remains an operational failure. */ }
+    if(code==='browser_access_barrier')throw new AccessBarrierError(message??'Source access barrier');
+    throw new Error(`Worker API ${path} failed (${response.status}): ${text}`);
+  }
   return response.json();
 }
 export function requireLoopbackApi(api) {

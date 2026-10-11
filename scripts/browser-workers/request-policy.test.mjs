@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { startFixture } from './fixture.mjs';
 import { installRequestPolicy } from './request-policy.mjs';
+import { AccessBarrierError } from './protocol.mjs';
 
 async function exercise(path,{revokeWhileWaiting=false}={}) {
   const fixture=await startFixture();let browser;
@@ -12,9 +13,9 @@ async function exercise(path,{revokeWhileWaiting=false}={}) {
   const checks=[],stops=[],reservations=[];let revoked=false;
   let stopped;const stoppedPromise=new Promise(resolve=>{stopped=resolve;});
   await installRequestPolicy(context,{origin:fixture.origin,leaseExpiresAt:Date.now()+120_000,
-    check:async url=>{checks.push(url);if(revoked)throw new Error('Source policy revoked');if(new URL(url).pathname.startsWith('/denied'))throw new Error('robots_denied');},
+    check:async url=>{checks.push(url);if(revoked)throw new Error('Source policy revoked');if(new URL(url).pathname.startsWith('/denied'))throw new AccessBarrierError('robots_denied');},
     pace:async url=>{reservations.push(url);if(revokeWhileWaiting){setTimeout(()=>{revoked=true;},20);return Date.now()+100;}return Date.now();},
-    stop:reason=>{stops.push(reason);stopped(reason);}});
+    stop:reason=>{stops.push(reason);stopped(reason);},fail:reason=>stopped(reason)});
   try {
     const page=await context.newPage();await page.goto(fixture.origin+path,{waitUntil:'domcontentloaded',timeout:5000}).catch(()=>{});
     const reason=await Promise.race([stoppedPromise,new Promise((_,reject)=>{const timer=setTimeout(()=>reject(new Error('Expected request barrier stop')),5000);timer.unref();})]);
@@ -88,5 +89,18 @@ test('every approved XHR reserves pacing and revalidates before fetching',async(
       for(const url of paced)assert.equal(checks.filter(item=>item===url).length,2);
       assert.equal(finalUrl,fixture.origin+path);
     }
+  } finally {await browser?.close();await fixture.close();}
+});
+test('ordinary request-check failure closes this context without revoking source approval',async()=>{
+  const fixture=await startFixture();let browser;
+  try {
+    browser=await chromium.launch({channel:'chrome'});const context=await browser.newContext();
+    const failures=[],stops=[];const closed=new Promise(resolve=>context.once('close',resolve));
+    await installRequestPolicy(context,{origin:fixture.origin,leaseExpiresAt:Date.now()+120_000,
+      check:async()=>{throw new Error('Worker API unavailable');},pace:async()=>Date.now(),
+      stop:async reason=>stops.push(reason),fail:async reason=>failures.push(reason)});
+    const page=await context.newPage();await page.goto(fixture.origin+'/table').catch(()=>{});await closed;
+    assert.equal(stops.length,0);assert.equal(failures.length,1);
+    assert.match(failures[0],/unavailable/);assert.equal(fixture.requests.length,0);
   } finally {await browser?.close();await fixture.close();}
 });

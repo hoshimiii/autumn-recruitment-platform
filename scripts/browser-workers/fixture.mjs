@@ -28,6 +28,12 @@ export async function startFixture() {
     if(req.url?.startsWith('/blocked-api')){const status=Number(new URL(req.url,'http://fixture').searchParams.get('status'));res.writeHead([401,403,429].includes(status)?status:403);res.end('Access barrier');return;}
     if(req.url?.startsWith('/denied') || req.url==='/after-barrier'){res.end('This endpoint must not be fetched');return;}
     if(req.url==='/captcha'){res.writeHead(200);res.end('<h1>captcha 验证码</h1>');return;}
+    if(req.url==='/server-error'){res.writeHead(500);res.end('Temporary server error');return;}
+    if(req.url==='/auth-required'){res.setHeader('Content-Type','text/html');res.end('<h1>login required</h1>');return;}
+    if(req.url==='/verify'){res.setHeader('Content-Type','text/html');res.end('<h1>captcha 验证码</h1>');return;}
+    if(req.url==='/export-denied'){res.setHeader('Content-Type','text/html');res.end('<body data-export-denied="true">Visible source</body>');return;}
+    if(req.url==='/redirect-unapproved'){res.writeHead(302,{Location:'https://unapproved.example/jobs'});res.end();return;}
+    if(req.url==='/copy-denied'){res.setHeader('Content-Type','text/html');res.end('<body data-copy-denied="true">Visible source</body>');return;}
     res.writeHead(404);res.end();
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));

@@ -7,7 +7,7 @@ import { JobDetail } from "../features/jobs/JobDetail";
 const job = {
   id: 101, companyCategory: "互联网大厂", companyName: "云澜科技", title: "前端工程师",
   jobFamily: "开发", jobType: "全职", city: "上海", techStack: ["React", "TypeScript"],
-  certificateRequirements: ["英语六级"], deadline: "2026-10-10", deadlineStatus: "开放",
+  certificateRequirements: ["英语六级"], deadline: "2099-12-31", deadlineStatus: "开放",
   status: "PUBLISHED", priority: 1, sourceName: "云澜官网", sourceType: "HTML",
   sourceUrl: "https://jobs.example/frontend", sourceTrust: "OFFICIAL", capturedAt: "2026-07-25T08:00:00Z",
   updatedAt: "2026-07-25T09:00:00Z", reviewStatus: "APPROVED", applicationStatus: "未投递",

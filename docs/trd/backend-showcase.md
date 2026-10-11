@@ -27,6 +27,11 @@ Published queries and exports accept optional exact `businessUnit`, `title` and
 `recruitmentYear` filters alongside company. Blank department/cohort filters omit
 that predicate; absent record values are not synthesized or matched as wildcards.
 The same filters reach REST, CLI, MCP and the frontend URL.
+An existing pre-upgrade company/title/city/source-URL key is eligible for
+compatibility matching only within the same source and with exactly matching
+optional department/cohort/row/official-ID values. Approval updates that job in
+place and adopts the canonical key in the same transaction, preserving its ID
+and history. Unknown values never match newly supplied identity fields.
 
 ## Authentication and authorization
 

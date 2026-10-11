@@ -68,7 +68,11 @@ public class BrowserTaskRepository {
   }
   public void finish(long id,String hash) { jdbc.update("UPDATE browser_tasks SET status='COMPLETED',result_hash=? WHERE id=? AND status='COMPLETING'",hash,id); }
   public void stop(long id,String worker,String token,String reason) {
-    if(jdbc.update("UPDATE browser_tasks SET status='BLOCKED',error=? WHERE id=? AND status='CLAIMED' AND worker_id=? AND lease_token=? AND lease_expires_at>?",reason,id,worker,token,System.currentTimeMillis())!=1)
+    terminate(id,worker,token,reason,"BLOCKED");
+  }
+  public void fail(long id,String worker,String token,String reason) { terminate(id,worker,token,reason,"FAILED"); }
+  private void terminate(long id,String worker,String token,String reason,String status) {
+    if(jdbc.update("UPDATE browser_tasks SET status=?,error=? WHERE id=? AND status='CLAIMED' AND worker_id=? AND lease_token=? AND lease_expires_at>?",status,reason,id,worker,token,System.currentTimeMillis())!=1)
       throw new IllegalStateException("Expired/stale lease");
   }
   public List<BrowserTask> list() { return jdbc.query(select()+" ORDER BY t.id DESC",this::map); }

@@ -122,7 +122,9 @@ refresh, and Redis cache keys include the dataset and SQL generation.
 
 ## Browser tasks
 
-`GET /api/v1/browser-tasks` returns `{items:[...]}`. `POST` accepts `sourceId`,
+`GET /api/v1/browser-tasks` returns `{items:[...]}` containing task ID, source ID,
+row range, row/text budgets and status only; it never returns `workerId` or
+`leaseToken`, including claimed tasks. `POST` accepts `sourceId`,
 zero-based `rowStart`, exclusive `rowEnd`, and `maxChars`; ranges and budgets are
 bounded. ADMIN explicitly approves a source's current policy through
 `POST /api/v1/browser-tasks/sources/{id}/approve` with
@@ -131,14 +133,28 @@ requires the explicit test-only server flag. `POST .../sources/{id}/revoke`
 revokes that policy; source changes invalidate approval.
 
 For a fixed task ID, `POST /{id}/claim` takes `workerId` and returns a current
-lease token. `POST /{id}/check-access`, `/pace`, `/stop`, and `/complete` require
+lease token and worker identity to the claimant. `POST /{id}/check-access`,
+`/pace`, `/fail`, `/stop`, and `/complete` require
 that worker/token pair. `/check-request` also takes `requestUrl` and checks
 current origin/robots policy before each navigation, redirect or XHR; it does
 not fetch the submitted request URL. `/pace` returns the shared SQL-reserved
 `readAt` timestamp and workers revalidate after waiting.
 
+`/fail` takes the lease pair and a bounded `reason`, marks only that claimed task
+`FAILED`, and preserves source approval and peer tasks. Workers use it for
+timeouts, missing selectors/rows, provider or malformed-output failures, browser
+startup/network failures, and ordinary non-barrier HTTP errors. `/stop` marks the
+task `BLOCKED` and revokes source approval for all peers; use it for confirmed
+401/403/429, login/CAPTCHA, robots denial, unapproved origin, copy/export/access
+restrictions. Request checks return error code `browser_access_barrier` for these
+confirmed barriers; unavailable robots checks fail closed without treating an
+operational outage as a newly discovered restriction. All failures close the
+worker's context promptly; they never bypass policy checks.
+
 `/complete` accepts `rows` with visible evidence, source row/item identity,
-capture time and approved source URL. Invalid, expired, revoked or conflicting
+capture time and approved source URL. It requires exactly `maxRows` rows, with
+each index in `[rowStart,rowEnd)` present exactly once. Empty, partial or duplicate
+index results are rejected without ingestion or completion. Invalid, expired, revoked or conflicting
 results are rejected transactionally. COMPANY records go to manual follow-up;
 independently evidenced ROLE records go to `PENDING_REVIEW`. Replay does not
 create duplicates and no endpoint automatically publishes extracted rows.

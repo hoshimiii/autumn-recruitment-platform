@@ -59,6 +59,15 @@ public class JobRepository {
     Optional<Long> existing = jdbc.queryForList(
         "SELECT id FROM jobs WHERE dedupe_key=? ORDER BY id LIMIT 1", Long.class, draft.dedupeKey())
         .stream().findFirst();
+    if (existing.isEmpty()) existing = jdbc.queryForList("""
+        SELECT id FROM jobs WHERE source_id=? AND dedupe_key=?
+          AND COALESCE(business_unit,'')=COALESCE(?,'')
+          AND COALESCE(campus_batch,'')=COALESCE(?,'')
+          AND COALESCE(source_row_id,'')=COALESCE(?,'')
+          AND COALESCE(official_job_id,'')=COALESCE(?,'') ORDER BY id LIMIT 1
+        """, Long.class, sourceId, draft.preUpgradeDedupeKey(), draft.businessUnit(),
+        draft.recruitmentYear() == null ? null : draft.recruitmentYear().toString(),
+        draft.sourceRowId(), draft.officialJobId()).stream().findFirst();
     if (existing.isPresent()) {
       Job previous = findById(existing.get());
       if (conflicts(previous.city(), draft.city()) || conflicts(previous.officialJobId(), draft.officialJobId()))
@@ -67,12 +76,12 @@ public class JobRepository {
           UPDATE jobs SET company_type=?,company_name=?,title=?,job_family=?,job_type=?,city=?,
           deadline=?,status='PUBLISHED',priority=?,tech_stack=?,certificate_requirements=?,source_id=?,
           source_url=?,apply_url=?,apply_method=?,requires_login=?,requires_captcha=?,source_trust_level=?,
-          jd=?,requirements=?,business_unit=?,campus_batch=?,source_row_id=?,official_job_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?
+          jd=?,requirements=?,business_unit=?,campus_batch=?,source_row_id=?,official_job_id=?,dedupe_key=?,updated_at=CURRENT_TIMESTAMP WHERE id=?
           """, draft.companyCategory(), draft.companyName(), draft.title(), draft.jobFamily(),
           draft.jobType(), draft.city(), draft.deadline(), draft.priority(), json.write(draft.techStack()),
           json.write(draft.certificateRequirements()), sourceId, draft.sourceUrl(), draft.applyUrl(),
           draft.applyMethod(), draft.requiresLogin(), draft.requiresCaptcha(), draft.sourceTrust(),
-          draft.jd(), draft.requirements(), draft.businessUnit(), draft.recruitmentYear(), draft.sourceRowId(), draft.officialJobId(), existing.get());
+          draft.jd(), draft.requirements(), draft.businessUnit(), draft.recruitmentYear(), draft.sourceRowId(), draft.officialJobId(), draft.dedupeKey(), existing.get());
       return new SavedJob(findById(existing.get()), false);
     }
     jdbc.update("""
@@ -132,6 +141,7 @@ public class JobRepository {
       String city, String deadline, int priority, List<String> techStack,
       List<String> certificateRequirements, String sourceUrl, String applyUrl, String applyMethod,
       boolean requiresLogin, boolean requiresCaptcha, String sourceTrust, String jd,
-      String requirements, String dedupeKey, String businessUnit, Integer recruitmentYear, String sourceRowId, String officialJobId) {}
+      String requirements, String dedupeKey, String businessUnit, Integer recruitmentYear, String sourceRowId, String officialJobId,
+      String preUpgradeDedupeKey) {}
   public record SavedJob(Job job, boolean created) {}
 }

@@ -117,6 +117,11 @@ public class CandidateNormalizer {
         key(value.path("officialJobId").asText()), key(value.path("sourceUrl").asText())));
   }
 
+  public static String preUpgradeIdentity(JsonNode value) {
+    return String.join("|", key(value.path("companyName").asText()), key(value.path("title").asText()),
+        key(value.path("city").asText()), key(value.path("sourceUrl").asText()));
+  }
+
   private static String key(String value) {
     String cleaned = clean(value);
     return cleaned == null ? "" : cleaned.toLowerCase(Locale.ROOT).replaceAll("\\s+", "");

@@ -61,7 +61,7 @@ npm run smoke:mcp
 node --test scripts/browser-workers/*.test.mjs
 ```
 
-Playwright 使用隔离端口 `15173/18082/14350`，不会复用或停止开发预览，
+Playwright 使用隔离端口 `15173/18082/24350`，不会复用或停止开发预览，
 并避开本地 Sub2API 默认使用的 `18080`。
 
 ## CLI

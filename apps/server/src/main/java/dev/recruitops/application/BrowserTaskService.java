@@ -44,7 +44,7 @@ public class BrowserTaskService {
   @Transactional @PreAuthorize("@operationAuthorizer.can('ADMIN')")
   public void revokeSource(long id) { tasks.revoke(id); }
   @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
-  public List<BrowserTask> list() { return tasks.list(); }
+  public List<TaskSummary> list() { return tasks.list().stream().map(task->new TaskSummary(task.id(),task.sourceId(),task.rowStart(),task.rowEnd(),task.maxRows(),task.maxChars(),task.status())).toList(); }
   @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public BrowserTask create(long sourceId,int start,int end,int maxChars) {
     Source s=source(sourceId); requireSource(s); String adapter=tasks.requirePolicy(s);
@@ -68,9 +68,15 @@ public class BrowserTaskService {
     if(requestUrl==null || requestUrl.length()>4096)throw new IllegalArgumentException("Invalid source request URL");
     BrowserTask task=leased(id,worker,token);Source source=current(task);
     URI url=SourcePolicy.valid("request_url",requestUrl).normalize();
-    if(!SourcePolicy.origin(url).equals(task.origin()) || url.toString().matches("(?i).*(/login|/signin|captcha).*"))throw new IllegalArgumentException("Source request origin/barrier rejected");
+    if(!SourcePolicy.origin(url).equals(task.origin()) || url.toString().matches("(?i).*(/login|/signin|captcha).*"))throw new AccessBarrier("Source request origin/barrier rejected");
     // The submitted URL is checked against rules; only the configured robots URL is fetched.
-    robots.check(source).requireAllowed(url);
+    try { robots.check(source).requireAllowed(url); }
+    catch(CollectionException error) {
+      if(List.of("robots_denied","http_401","http_403","http_429","redirect_origin_not_allowed","request_origin_not_allowed",
+          "login_or_captcha_redirect","login_or_captcha_url","login_or_captcha_content","request_address_not_allowed","request_address_changed").contains(error.getMessage()))
+        throw new AccessBarrier(error.getMessage());
+      throw new IllegalStateException(error.getMessage(),error);
+    }
     current(leased(id,worker,token));
   }
   @Transactional @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
@@ -80,8 +86,12 @@ public class BrowserTaskService {
   }
   @Transactional @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public BrowserTask stop(long id,String worker,String token,String reason) {
-    if(reason==null || reason.length()>300) throw new IllegalArgumentException("Invalid stop reason");
+    requireReason(reason);
     tasks.stop(id,worker,token,reason);BrowserTask task=tasks.find(id);tasks.revoke(task.sourceId());return task;
+  }
+  @Transactional @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
+  public BrowserTask fail(long id,String worker,String token,String reason) {
+    requireReason(reason);tasks.fail(id,worker,token,reason);return tasks.find(id);
   }
   @Transactional @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public BrowserTask complete(long id,Completion result) {
@@ -89,13 +99,14 @@ public class BrowserTaskService {
     String serialized=json.write(result); if(serialized.length()>100_000) throw new IllegalArgumentException("Result too large");
     String hash=hash(serialized); boolean changed=tasks.fence(id,result.workerId(),result.leaseToken(),hash);
     BrowserTask task=tasks.find(id); Source source=current(task); if(!changed) return task;
-    if(result.rows().size()>task.maxRows()) throw new IllegalArgumentException("Too many rows");
-    HashSet<String> identities=new HashSet<>(); int total=0;
+    if(result.rows().size()!=task.maxRows()) throw new IllegalArgumentException("Result must cover every assigned row");
+    HashSet<String> identities=new HashSet<>(); HashSet<Integer> indices=new HashSet<>(); int total=0;
     for(Row row:result.rows()) {
       validate(task,row); total+=row.visibleText().length();
+      if(!indices.add(row.rowIndex())) throw new IllegalArgumentException("Duplicate assigned row index");
       if(total>task.maxChars() || !identities.add(row.sourceRowId()+"\n"+row.itemDiscriminator())) throw new IllegalArgumentException("Duplicate identity/visible text budget exceeded");
-      ingest(task,source,row);
     }
+    for(Row row:result.rows()) ingest(task,source,row);
     tasks.finish(id,hash); return tasks.find(id);
   }
   private void ingest(BrowserTask task,Source source,Row row) {
@@ -161,6 +172,7 @@ public class BrowserTaskService {
     if(!SourcePolicy.sameOrigin(base,list) || list.toString().matches("(?i).*(/login|/signin|captcha).*")) throw new IllegalArgumentException("Browser URL origin/barrier rejected");
   }
   private static void requireId(String value) { if(value==null || value.isBlank() || value.length()>200 || value.chars().anyMatch(c->c<32)) throw new IllegalArgumentException("Invalid worker/row identity"); }
+  private static void requireReason(String value) { if(value==null || value.isBlank() || value.length()>300) throw new IllegalArgumentException("Invalid failure/stop reason"); }
   private static boolean present(Map<String,Object> fields,String key) { return fields.get(key)!=null && !String.valueOf(fields.get(key)).isBlank(); }
   private static boolean loopback(String host) { return List.of("127.0.0.1","localhost","::1").contains(host); }
   private static String hash(String text) {
@@ -168,5 +180,7 @@ public class BrowserTaskService {
     catch(Exception error) { throw new IllegalStateException(error); }
   }
   public record Completion(String workerId,String leaseToken,List<Row> rows) {}
+  public record TaskSummary(long id,long sourceId,int rowStart,int rowEnd,int maxRows,int maxChars,String status) {}
+  public static class AccessBarrier extends IllegalArgumentException { public AccessBarrier(String reason) { super(reason); } }
   public record Row(int rowIndex,String sourceRowId,String itemDiscriminator,String kind,String sourceUrl,String capturedAt,String visibleText,Map<String,Object> fields) {}
 }

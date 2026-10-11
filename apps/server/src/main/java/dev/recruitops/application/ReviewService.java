@@ -65,7 +65,8 @@ public class ReviewService {
         bool(node, "requiresLogin"), bool(node, "requiresCaptcha"),
         required(node, "sourceTrust", "sourceTrustLevel"), text(node, "jd"),
         text(node, "requirements"), CandidateNormalizer.identity(item.sourceId(), node),
-        text(node, "businessUnit"), cohort(node), text(node, "sourceRowId"), text(node, "officialJobId"));
+        text(node, "businessUnit"), cohort(node), text(node, "sourceRowId"), text(node, "officialJobId"),
+        CandidateNormalizer.preUpgradeIdentity(node));
   }
   private Integer cohort(JsonNode node) {
     String value = text(node, "recruitmentYear");

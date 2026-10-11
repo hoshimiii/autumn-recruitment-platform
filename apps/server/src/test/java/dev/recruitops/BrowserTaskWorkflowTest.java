@@ -10,11 +10,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.test.web.servlet.MockMvc;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties="recruitops.browser.fixtures-enabled=true")
+@AutoConfigureMockMvc
 class BrowserTaskWorkflowTest extends CollectorTestSupport {
   @Autowired BrowserTaskService tasks;
   @Autowired BrowserTaskRepository repository;
+  @Autowired MockMvc mvc;
+  @Autowired ObjectMapper json;
   @BeforeEach void clearManual() { jdbc.update("DELETE FROM manual_items"); }
   long approved() {
     route("/robots.txt",200,"text/plain",()->"User-agent: *\nAllow: /",null);
@@ -83,5 +91,61 @@ class BrowserTaskWorkflowTest extends CollectorTestSupport {
     assertEquals(0,sourceReads.get());
     repository.revoke(source);
     assertThrows(IllegalStateException.class,()->tasks.checkRequest(lease.id(),"worker",lease.leaseToken(),origin+"/allowed-xhr"));
+  }
+  @Test void ordinaryFailurePreservesApprovalAndPeerLeaseAndRequiresCurrentCredentials() throws Exception {
+    long source=approved();var left=tasks.claim(tasks.create(source,0,1,4000).id(),"left");
+    var right=tasks.claim(tasks.create(source,0,1,4000).id(),"right");
+    mvc.perform(post("/api/v1/browser-tasks/{id}/fail",left.id()).contentType("application/json")
+        .content(json.writeValueAsString(Map.of("workerId","wrong","leaseToken",left.leaseToken(),"reason","Provider timeout"))))
+        .andExpect(status().isConflict());
+    mvc.perform(post("/api/v1/browser-tasks/{id}/fail",left.id()).contentType("application/json")
+        .content(json.writeValueAsString(Map.of("workerId","left","leaseToken",left.leaseToken(),"reason","Provider timeout"))))
+        .andExpect(status().isOk());
+    assertEquals("FAILED",repository.find(left.id()).status());
+    assertEquals("CLAIMED",repository.find(right.id()).status());
+    tasks.checkAccess(right.id(),"right",right.leaseToken());
+    tasks.complete(right.id(),new BrowserTaskService.Completion("right",right.leaseToken(),List.of(row("ROLE"))));
+    assertEquals("PENDING",tasks.create(source,0,1,4000).status());
+  }
+  @Test void resultsRequireEveryAssignedIndexExactlyOnceAndRejectAtomically() {
+    long source=approved();var lease=tasks.claim(tasks.create(source,0,2,4000).id(),"worker");
+    var duplicate=new BrowserTaskService.Row(0,"row-2","role-2","ROLE",origin+"/table",Instant.now().toString(),
+        "row-2 role-2 Acme Engineer official-2 Build Java",Map.of("companyName","Acme","title","Engineer","officialJobId","official-2","jd","Build Java"));
+    for(var rows:List.of(List.<BrowserTaskService.Row>of(),List.of(row("ROLE")),List.of(row("ROLE"),duplicate))) {
+      assertThrows(IllegalArgumentException.class,()->tasks.complete(lease.id(),new BrowserTaskService.Completion("worker",lease.leaseToken(),rows)));
+      assertEquals("CLAIMED",repository.find(lease.id()).status());
+      assertEquals(0,count("browser_ingestion_evidence"));assertEquals(0,count("review_items"));assertEquals(0,count("manual_items"));
+    }
+    var second=new BrowserTaskService.Row(1,duplicate.sourceRowId(),duplicate.itemDiscriminator(),duplicate.kind(),duplicate.sourceUrl(),duplicate.capturedAt(),duplicate.visibleText(),duplicate.fields());
+    var full=new BrowserTaskService.Completion("worker",lease.leaseToken(),List.of(second,row("ROLE")));
+    tasks.complete(lease.id(),full);tasks.complete(lease.id(),full);
+    assertEquals(2,count("review_items"));assertEquals(2,count("browser_ingestion_evidence"));
+  }
+  @Test void listNeverExposesCredentialsWhileClaimResponseRemainsUsable() throws Exception {
+    long source=approved();var task=tasks.create(source,0,1,4000);
+    var claimed=mvc.perform(post("/api/v1/browser-tasks/{id}/claim",task.id()).contentType("application/json")
+        .content("{\"workerId\":\"private-worker\"}")).andExpect(status().isOk()).andReturn();
+    var claim=json.readTree(claimed.getResponse().getContentAsString());
+    assertEquals("private-worker",claim.path("workerId").asText());assertFalse(claim.path("leaseToken").asText().isBlank());
+    var response=mvc.perform(get("/api/v1/browser-tasks")).andExpect(status().isOk()).andReturn();
+    var listing=json.readTree(response.getResponse().getContentAsString()).path("items").get(0);
+    assertFalse(listing.has("leaseToken"));assertFalse(listing.has("workerId"));
+    assertEquals(task.id(),listing.path("id").asLong());assertEquals("CLAIMED",listing.path("status").asText());
+    tasks.complete(task.id(),new BrowserTaskService.Completion("private-worker",claim.path("leaseToken").asText(),List.of(row("ROLE"))));
+  }
+  @Test void requestChecksDistinguishConfirmedBarriersFromRobotsOutages() throws Exception {
+    long source=approved();var lease=tasks.claim(tasks.create(source,0,1,4000).id(),"worker");
+    server.removeContext("/robots.txt");route("/robots.txt",503,"text/plain",()->"Temporary outage",null);
+    String body=json.writeValueAsString(Map.of("workerId","worker","leaseToken",lease.leaseToken(),"requestUrl",origin+"/table"));
+    mvc.perform(post("/api/v1/browser-tasks/{id}/check-request",lease.id()).contentType("application/json").content(body))
+        .andExpect(status().isConflict());
+    assertEquals(0,jdbc.queryForObject("SELECT revoked FROM browser_source_policies WHERE source_id=?",Integer.class,source));
+    server.removeContext("/robots.txt");route("/robots.txt",200,"text/plain",()->"User-agent: *\nDisallow: /table",null);
+    var denied=mvc.perform(post("/api/v1/browser-tasks/{id}/check-request",lease.id()).contentType("application/json").content(body))
+        .andExpect(status().isForbidden()).andReturn();
+    assertEquals("browser_access_barrier",json.readTree(denied.getResponse().getContentAsString()).path("error").path("code").asText());
+    server.removeContext("/robots.txt");route("/robots.txt",403,"text/plain",()->"Access denied",null);
+    mvc.perform(post("/api/v1/browser-tasks/{id}/check-request",lease.id()).contentType("application/json").content(body))
+        .andExpect(status().isForbidden());
   }
 }

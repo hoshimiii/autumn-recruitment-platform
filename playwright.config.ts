@@ -14,9 +14,9 @@ export default defineConfig({
   webServer: [
     {
       command: "node tests/fixtures/career-source.mjs",
-      url: "http://127.0.0.1:14350/robots.txt",
+      url: "http://127.0.0.1:24350/robots.txt",
       reuseExistingServer: false,
-      env: { FIXTURE_PORT: "14350" }
+      env: { FIXTURE_PORT: "24350" }
     },
     {
       command: ".\\mvnw.cmd -f apps/server/pom.xml spring-boot:run",
