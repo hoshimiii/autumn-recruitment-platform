@@ -10,6 +10,14 @@ mount/unmount. Full acceptance requires Java/frontend/browser/CLI/MCP/exports.
 
 ## Current Brief
 
+- Completed PR delivery authorization (2026-10-11): user explicitly requested a
+  merge request for these changes. Target only GitHub repository
+  hoshimiii/autumn-recruitment-platform, head codex/backend-showcase, base main.
+  Push the accepted commits and scoped continuity updates, create/update this PR
+  and verify its remote head. No merge, deployment, force push, paid operation or
+  changes to other branches. Stop on secret exposure, changed target or conflict.
+  Completion: an open PR attached to this task and remote head matching local HEAD.
+
 - Completed runtime acceptance (2026-10-10): user offered to start Docker Desktop;
   live Docker Engine 29.3.1 is reachable. Use only local Compose projects
   recruitops-middleware-demo, uniquely named recruitops-oidc-smoke-* provider
@@ -23,7 +31,8 @@ mount/unmount. Full acceptance requires Java/frontend/browser/CLI/MCP/exports.
   branch codex/backend-showcase, starting accepted HEAD 3e422f7.
 - Authorization: user requested all four enhancements, staged implementation and
   Git commits. Local code, fixtures, test services, dependency downloads and scoped
-  validation are permitted. No public push, deployment, paid model invocation,
+  validation are permitted; the same-repository branch push and PR are now
+  explicitly authorized. No merge, deployment, paid model invocation,
   real Feishu collection, production database changes, or access-barrier bypass.
 - Original dirty worktree remains E:\codex-projects\autumn-recruitment-platform.
   Existing Agent settings/code/contracts copied and baseline committed as 57bc7dd.
@@ -56,6 +65,9 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 8. Runtime acceptance: actual Redis/ES, analytics and Keycloak passed; owned
    containers/network and Java processes removed. Live Feishu final URL/selectors
    and actual provider remain pending.
+9. Branch pushed and open PR #1 created against main, attached to this task:
+   https://github.com/hoshimiii/autumn-recruitment-platform/pull/1
+   GitHub reports MERGEABLE/CLEAN, with no configured status checks. No merge done.
 
 ## Verification and Remaining Risk
 
@@ -119,11 +131,15 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
   remain unverified. Protocol fixtures are not live source/model acceptance.
 - SQLite still has one writer; no throughput benchmark or distributed-database
   performance claim. JDK HttpClient DNS TOCTOU remains a limitation.
+- PR preflight: GitHub API verified main at accepted3e422f7. Normal fetch failed
+  because of a broken app-internal refs/codex/turn-diffs/checkpoints reference;
+  it was left untouched. Explicit scoped branch push and PR creation succeeded.
+  Repairing that internal fetch reference is separate from this delivery.
 
 ## Exact Next Action
 
-Review the committed implementation in this named worktree; authorized development
-and isolated container acceptance are complete. Reproduce with infra/README.md
-and labs/analytics/run.ps1 smoke. The optional next live-source phase needs an
-approved final public Feishu URL/policy/selectors and provider setup/cost
-authorization. No public push or operational DB migration done.
+None for the authorized implementation, acceptance and PR delivery. PR #1 is
+ready for review; merging requires a separate instruction. Reproduce with
+infra/README.md and labs/analytics/run.ps1 smoke. The optional live-source phase
+needs an approved final public Feishu URL/policy/selectors and provider setup/cost
+authorization. No merge, deployment or operational DB migration done.
