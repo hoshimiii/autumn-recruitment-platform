@@ -19,6 +19,7 @@ public class BrowserTasksController {
   @PostMapping("/sources/{id}/revoke") public Map<String,String> revoke(@PathVariable long id) { tasks.revokeSource(id);return Map.of("status","REVOKED"); }
   @PostMapping("/{id}/claim") public BrowserTask claim(@PathVariable long id,@RequestBody Lease input) { return tasks.claim(id,input.workerId()); }
   @PostMapping("/{id}/check-access") public Map<String,String> check(@PathVariable long id,@RequestBody Lease input) { tasks.checkAccess(id,input.workerId(),input.leaseToken());return Map.of("status","ALLOWED"); }
+  @PostMapping("/{id}/check-lease") public Map<String,String> leaseCheck(@PathVariable long id,@RequestBody Lease input) { tasks.checkLease(id,input.workerId(),input.leaseToken());return Map.of("status","ALLOWED"); }
   @PostMapping("/{id}/check-request") public Map<String,String> requestCheck(@PathVariable long id,@RequestBody RequestCheck input) { tasks.checkRequest(id,input.workerId(),input.leaseToken(),input.requestUrl());return Map.of("status","ALLOWED"); }
   @PostMapping("/{id}/pace") public Map<String,Long> pace(@PathVariable long id,@RequestBody Lease input) { return Map.of("readAt",tasks.pace(id,input.workerId(),input.leaseToken())); }
   @PostMapping("/{id}/stop") public BrowserTask stop(@PathVariable long id,@RequestBody Lease input) { return tasks.stop(id,input.workerId(),input.leaseToken(),input.reason()); }

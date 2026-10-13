@@ -62,6 +62,19 @@ Tasks carry approved source, origin, policy version, fixed row range and budgets
 Claim and complete require worker ID and current lease token; stale claims or revoked
 source policies fail. Workers use separate browser contexts and bounded visible-page
 reads, return validated structured fields/evidence, and stop on access barriers.
+Robots checks, browser resources and ordinary HTTP collection share atomic SQLite
+reservations keyed by normalized origin, including across configured sources.
+Each slot honors the production floor, the preceding read's interval and the
+current source/crawl delay. Different origins have independent slots. A worker
+checks robots before reserving the resource slot; after waiting it calls the
+fenced `/check-lease` endpoint to revalidate current approval without a source read.
+Fresh crawl delays may increase a task's delay; policy and lease failures still
+prevent dispatch. Existing source reservations survive the pacing migration.
+Reservations use SQLite's clock after write-lock acquisition so lock contention
+does not create an already-expired slot. These are scheduled read slots, not an
+acknowledged distributed dispatch lock: a delayed worker may miss its slot.
+Fresh robots delays are retained on the checked task; propagating that new delay
+to other sources before this task's next reservation remains a known limitation.
 A runnable external supervisor starts at most two workers, with local fixture/provider
 stubs for non-billable acceptance. This is the application's worker-agent workflow;
 native Codex/CUA delegation is a separate capability and must not be falsely claimed.

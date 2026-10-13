@@ -1,6 +1,6 @@
 import { requireOrigin, AccessBarrierError } from './protocol.mjs';
 
-export async function installRequestPolicy(context,{origin,leaseExpiresAt,check,pace,stop,fail=async()=>{},onDocumentUrl=()=>{}}) {
+export async function installRequestPolicy(context,{origin,leaseExpiresAt,check,pace,validate,stop,fail=async()=>{},onDocumentUrl=()=>{}}) {
   let failure,closing,finishing=false,active=0;const drained=[];
   const halt=error=>{
     if(failure)return closing;
@@ -23,7 +23,7 @@ export async function installRequestPolicy(context,{origin,leaseExpiresAt,check,
         if(readAt>leaseExpiresAt-20_000)throw new Error('Source pacing exceeds task lease budget');
         await new Promise(resolve=>setTimeout(resolve,Math.max(0,readAt-Date.now())));
         if(failure)throw failure;
-        await check(url);
+        await validate(url);
         if(failure)throw failure;
         // Playwright routes only the first redirect URL; never dispatch an ungated target.
         response=await route.fetch({url,maxRedirects:0,timeout:15_000});

@@ -63,6 +63,10 @@ public class BrowserTaskService {
     checkRequest(id,worker,token,tasks.find(id).listUrl());
   }
   @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
+  public void checkLease(long id,String worker,String token) {
+    requireId(worker);requireId(token);current(leased(id,worker,token));
+  }
+  @PreAuthorize("@operationAuthorizer.can('COLLECTOR')")
   public void checkRequest(long id,String worker,String token,String requestUrl) {
     requireId(worker);requireId(token);
     if(requestUrl==null || requestUrl.length()>4096)throw new IllegalArgumentException("Invalid source request URL");
@@ -70,7 +74,10 @@ public class BrowserTaskService {
     URI url=SourcePolicy.valid("request_url",requestUrl).normalize();
     if(!SourcePolicy.origin(url).equals(task.origin()) || url.toString().matches("(?i).*(/login|/signin|captcha).*"))throw new AccessBarrier("Source request origin/barrier rejected");
     // The submitted URL is checked against rules; only the configured robots URL is fetched.
-    try { robots.check(source).requireAllowed(url); }
+    try {
+      var access=robots.check(source);access.requireAllowed(url);
+      tasks.raiseReadDelay(id,(int)Math.min(Integer.MAX_VALUE,(access.crawlDelayMillis()+999)/1000));
+    }
     catch(CollectionException error) {
       if(List.of("robots_denied","http_401","http_403","http_429","redirect_origin_not_allowed","request_origin_not_allowed",
           "login_or_captcha_redirect","login_or_captcha_url","login_or_captcha_content","request_address_not_allowed","request_address_changed").contains(error.getMessage()))

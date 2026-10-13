@@ -3,6 +3,7 @@ package dev.recruitops.infrastructure;
 import dev.recruitops.domain.BrowserTask;
 import dev.recruitops.domain.Source;
 import java.time.Instant;
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,7 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class BrowserTaskRepository {
   private final JdbcTemplate jdbc;
-  public BrowserTaskRepository(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+  private final RequestPacer pacer;
+  public BrowserTaskRepository(JdbcTemplate jdbc,RequestPacer pacer) { this.jdbc = jdbc; this.pacer=pacer; }
   public void approve(Source s, String adapter) {
     jdbc.update("""
         INSERT INTO browser_source_policies(source_id,source_version,terms_version,approved_at,adapter)
@@ -60,11 +62,11 @@ public class BrowserTaskRepository {
   public long pace(long id,String worker,String token) {
     if(jdbc.update("UPDATE browser_tasks SET lease_expires_at=lease_expires_at WHERE id=? AND status='CLAIMED' AND worker_id=? AND lease_token=? AND lease_expires_at>?",id,worker,token,System.currentTimeMillis())!=1)
       throw new IllegalStateException("Expired/stale lease");
-    BrowserTask task=find(id); long now=System.currentTimeMillis();
-    jdbc.update("INSERT OR IGNORE INTO browser_source_pacing(source_id,next_read_at) VALUES (?,?)",task.sourceId(),now);
-    long scheduled=Math.max(now,jdbc.queryForObject("SELECT next_read_at FROM browser_source_pacing WHERE source_id=?",Long.class,task.sourceId()));
-    jdbc.update("UPDATE browser_source_pacing SET next_read_at=? WHERE source_id=?",scheduled+Math.max(100,task.minIntervalSeconds()*1000L),task.sourceId());
-    return scheduled;
+    BrowserTask task=find(id);
+    return pacer.reserve(URI.create(task.origin()),Math.max(100,task.minIntervalSeconds()*1000L));
+  }
+  public void raiseReadDelay(long id,int seconds) {
+    jdbc.update("UPDATE browser_tasks SET read_delay_seconds=MAX(read_delay_seconds,?) WHERE id=?",seconds,id);
   }
   public void finish(long id,String hash) { jdbc.update("UPDATE browser_tasks SET status='COMPLETED',result_hash=? WHERE id=? AND status='COMPLETING'",hash,id); }
   public void stop(long id,String worker,String token,String reason) {

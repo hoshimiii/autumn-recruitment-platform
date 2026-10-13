@@ -23,6 +23,7 @@ try {
   context=await browser.newContext({userAgent:'AutumnRecruitmentBot/1.0 (visible browser worker)',serviceWorkers:'block'});
   policy=await installRequestPolicy(context,{origin:lease.origin,leaseExpiresAt:lease.leaseExpiresAt,stop,fail,
     check:url=>apiRequest(api,`${base}/check-request`,{workerId,leaseToken:lease.leaseToken,requestUrl:url}),
+    validate:()=>apiRequest(api,`${base}/check-lease`,{workerId,leaseToken:lease.leaseToken}),
     pace:async()=>{const result=await apiRequest(api,`${base}/pace`,{workerId,leaseToken:lease.leaseToken});return result.readAt;},
     onDocumentUrl:url=>{documentUrl=url;}});
   const page=await context.newPage();

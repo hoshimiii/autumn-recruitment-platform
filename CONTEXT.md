@@ -10,6 +10,37 @@ mount/unmount. Full acceptance requires Java/frontend/browser/CLI/MCP/exports.
 
 ## Current Brief
 
+- Pacing repair in progress (2026-10-13): user moved development to the dot cloud
+  computer. Isolated branch `codex/fix-origin-pacing` starts at main
+  `3bd987abc852ddd31f2aa491136f2ebddfe28e59`; baseline bundle and incoming patch
+  are retained. User subsequently authorized committing and pushing this partial
+  repair to `codex/fix-origin-pacing` in the same repository (2026-10-13).
+  No PR creation, merge, deployment or live-source collection is authorized.
+  Scope: PR #1 discussions 4241077162 and 4241077164. The remaining pacing holes
+  below are relevant to this scope; this is not a fully accepted repair.
+- Current patch unifies SQLite origin reservations across robots, browser and
+  ordinary HTTP reads; replaces the post-wait robots fetch with a network-free
+  lease/policy check. V8 retains old pending reservations. Cloud review added
+  in-SQL timestamp sampling after write-lock acquisition, plus boundary tests.
+- Verification is partial, not final acceptance. Before migration, the desktop
+  version passed 23 affected Java tests and 11 real-Chrome policy tests. That
+  evidence predates the cloud timestamp correction and added tests. Cloud passed
+  28 frontend tests, lint/typecheck, build, three protocol tests, JS syntax,
+  whitespace checks and supplemental real-SQLite migration/lock tests. The latter
+  reproduced the old timestamp at -300 ms and corrected it to +33 ms relative
+  to lock release; they do not substitute for Java/Flyway integration tests.
+- Cloud Java dependency download was interrupted by cancelled approval review;
+  new Java tests and full Java/package/CLI/MCP/export checks were not run.
+  Cloud browser launch fails on a denied local process socket even after the
+  reviewed retry; the full worker run therefore has 20 failures. E2E additionally
+  cannot start its Windows-only Maven command on Linux. No browser pass is claimed.
+- Known limits: newly learned robots delay is task-local until its next resource
+  reservation; another same-origin source can still use its lower delay meanwhile.
+  Reserved slots do not guarantee actual spacing after an arbitrarily delayed
+  worker dispatch. Both are retained explicitly rather than claiming a full
+  distributed rate-limit solution. Next: run final Java/browser acceptance in a
+  permitted runtime and review these limits before publication.
+
 - Active review-fix and merge authorization (2026-10-11): user requested repair
   of Codex findings followed by merging the same PR #1 into main. Scope only
   legacy identity compatibility, browser failure classification, complete row
