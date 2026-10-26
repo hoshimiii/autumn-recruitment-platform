@@ -5,36 +5,61 @@ import dev.recruitops.application.SourcePolicy;
 import dev.recruitops.domain.Source;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.net.UnknownHostException;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
+import org.apache.hc.client5.http.ssl.TlsSocketStrategy;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SafeHttpFetcher {
+public class SafeHttpFetcher implements AutoCloseable {
   static final int MAX_BODY_BYTES = 2 * 1024 * 1024;
-  private final HttpClient client;
+  private final long connectTimeoutSeconds;
+  private final ScheduledThreadPoolExecutor deadlines;
+  private final Set<HttpGet> activeRequests = ConcurrentHashMap.newKeySet();
+  private final TlsSocketStrategy tls;
   private final RequestPacer pacer;
   private final AddressPolicy addresses;
   private final String userAgent;
 
+  @org.springframework.beans.factory.annotation.Autowired
   public SafeHttpFetcher(
       RequestPacer pacer,
       AddressPolicy addresses,
       @Value("${recruitops.collector.user-agent:AutumnRecruitmentBot/1.0}") String userAgent,
       @Value("${recruitops.collector.connect-timeout-seconds:10}") long connectTimeoutSeconds) {
+    this(pacer, addresses, userAgent, connectTimeoutSeconds, DefaultClientTlsStrategy.createDefault());
+  }
+
+  SafeHttpFetcher(RequestPacer pacer, AddressPolicy addresses, String userAgent,
+                  long connectTimeoutSeconds, TlsSocketStrategy tls) {
     this.pacer = pacer;
     this.addresses = addresses;
     this.userAgent = userAgent;
-    this.client = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(Math.max(1, connectTimeoutSeconds)))
-        .followRedirects(HttpClient.Redirect.NEVER)
-        .build();
+    this.connectTimeoutSeconds = Math.max(1, connectTimeoutSeconds);
+    this.tls = tls;
+    this.deadlines = new ScheduledThreadPoolExecutor(1, task -> {
+      Thread thread = new Thread(task, "collector-deadline");
+      thread.setDaemon(true);
+      return thread;
+    });
+    deadlines.setRemoveOnCancelPolicy(true);
   }
 
   public FetchResult fetch(Source source, URI initialUri, boolean conditional,
@@ -44,21 +69,14 @@ public class SafeHttpFetcher {
     int redirects = 0;
     while (true) {
       requireRequestUri(base, current);
-      Set<String> approvedAddresses = addresses.requirePublic(current);
+      InetAddress[] approvedAddresses = addresses.resolvePublic(current);
       pacer.await(source, current, robotsDelayMillis);
-      HttpResponse<InputStream> response = send(source, current, conditional && redirects == 0);
-      try {
-        addresses.requireStable(current, approvedAddresses);
-      } catch (CollectionException error) {
-        close(response.body());
-        throw error;
-      }
-      int status = response.statusCode();
+      Response response = send(source, current, approvedAddresses, conditional && redirects == 0);
+      int status = response.status();
       if (isRedirect(status)) {
-        close(response.body());
         if (redirects >= 3) throw CollectionException.blocked("redirect_limit_exceeded");
-        String location = response.headers().firstValue("Location")
-            .orElseThrow(() -> CollectionException.blocked("redirect_location_missing"));
+        String location = response.location();
+        if (location == null) throw CollectionException.blocked("redirect_location_missing");
         URI next;
         try { next = current.resolve(location); }
         catch (RuntimeException error) { throw CollectionException.blocked("redirect_url_invalid"); }
@@ -71,50 +89,77 @@ public class SafeHttpFetcher {
         continue;
       }
       if (status == 401 || status == 403 || status == 429) {
-        close(response.body());
         throw CollectionException.blocked("http_" + status);
       }
-      byte[] body = readBounded(response);
+      byte[] body = response.body();
       if (detectBarrier && status >= 200 && status < 300
           && accessBarrier(new String(body, java.nio.charset.StandardCharsets.UTF_8))) {
         throw CollectionException.blocked("login_or_captcha_content");
       }
       return new FetchResult(status, current, body,
-          response.headers().firstValue("Content-Type").orElse("application/octet-stream"),
-          response.headers().firstValue("ETag").orElse(null),
-          response.headers().firstValue("Last-Modified").orElse(null));
+          response.contentType(), response.etag(), response.lastModified());
     }
   }
 
-  private HttpResponse<InputStream> send(Source source, URI uri, boolean conditional) {
-    try {
-      HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
-          .timeout(Duration.ofSeconds(Math.max(1, source.timeoutSeconds())))
-          .header("User-Agent", userAgent)
-          .header("Accept", "*/*")
-          .GET();
+  private Response send(Source source, URI uri, InetAddress[] approved, boolean conditional) {
+    if (Thread.currentThread().isInterrupted()) throw CollectionException.failed("request_interrupted");
+    HttpGet request = new HttpGet(uri);
+    request.setHeader("User-Agent", userAgent);
+    request.setHeader("Accept", "*/*");
+    var manager = PoolingHttpClientConnectionManagerBuilder.create()
+        .setDnsResolver(pinnedResolver(uri, approved))
+        .setTlsSocketStrategy(tls)
+        .setMaxConnTotal(1).setMaxConnPerRoute(1)
+        .setDefaultConnectionConfig(ConnectionConfig.custom()
+            .setConnectTimeout(Timeout.ofSeconds(connectTimeoutSeconds)).build()).build();
+    try (var client = HttpClients.custom().setConnectionManager(manager)
+        .disableRedirectHandling().disableAutomaticRetries().disableCookieManagement()
+        .disableContentCompression().build()) {
+      request.setConfig(RequestConfig.custom()
+          .setResponseTimeout(Timeout.ofSeconds(Math.max(1, source.timeoutSeconds()))).build());
       if (conditional && source.etag() != null && !source.etag().isBlank()) {
-        builder.header("If-None-Match", source.etag());
+        request.setHeader("If-None-Match", source.etag());
       }
       if (conditional && source.lastModified() != null && !source.lastModified().isBlank()) {
-        builder.header("If-Modified-Since", source.lastModified());
+        request.setHeader("If-Modified-Since", source.lastModified());
       }
-      return client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
-    } catch (InterruptedException error) {
-      Thread.currentThread().interrupt();
-      throw CollectionException.failed("request_interrupted", error);
+      java.util.concurrent.ScheduledFuture<?> deadline;
+      synchronized (deadlines) {
+        if (deadlines.isShutdown()) throw CollectionException.failed("request_failed");
+        activeRequests.add(request);
+        deadline = deadlines.schedule(request::cancel, Math.max(1, source.timeoutSeconds()), TimeUnit.SECONDS);
+      }
+      ClassicHttpResponse response = null;
+      try {
+        response = client.executeOpen(null, request, null);
+        int status = response.getCode();
+        byte[] body = isRedirect(status) || status == 401 || status == 403 || status == 429
+            ? new byte[0] : readBounded(response);
+        if (request.isCancelled()) throw CollectionException.failed("request_failed");
+        return new Response(status, body, header(response, "Location"),
+            header(response, "Content-Type"), header(response, "ETag"), header(response, "Last-Modified"));
+      } finally {
+        deadline.cancel(false);
+        // Close the socket before the entity: entity.close() may otherwise drain an untrusted body.
+        client.close(CloseMode.IMMEDIATE);
+        if (response != null) {
+          try { response.close(); } catch (IOException ignored) { /* Socket already closed intentionally. */ }
+        }
+        activeRequests.remove(request);
+      }
     } catch (IOException | IllegalArgumentException error) {
       throw CollectionException.failed("request_failed", error);
     }
   }
 
-  private byte[] readBounded(HttpResponse<InputStream> response) {
-    long declared = response.headers().firstValueAsLong("Content-Length").orElse(-1);
+  private byte[] readBounded(ClassicHttpResponse response) {
+    if (response.getEntity() == null) return new byte[0];
+    long declared = response.getEntity().getContentLength();
     if (declared > MAX_BODY_BYTES) {
-      close(response.body());
       throw CollectionException.failed("response_body_too_large");
     }
-    try (InputStream input = response.body()) {
+    try {
+      InputStream input = response.getEntity().getContent();
       byte[] body = input.readNBytes(MAX_BODY_BYTES + 1);
       if (body.length > MAX_BODY_BYTES) throw CollectionException.failed("response_body_too_large");
       return body;
@@ -142,7 +187,35 @@ public class SafeHttpFetcher {
     return status == 301 || status == 302 || status == 303 || status == 307 || status == 308;
   }
 
-  private static void close(InputStream input) {
-    try { input.close(); } catch (IOException ignored) { }
+  private static DnsResolver pinnedResolver(URI uri, InetAddress[] approved) {
+    InetAddress[] snapshot = approved.clone();
+    return new DnsResolver() {
+      public InetAddress[] resolve(String host) throws UnknownHostException {
+        if (!host.replace("[", "").replace("]", "").equalsIgnoreCase(
+            uri.getHost().replace("[", "").replace("]", ""))) {
+          throw new UnknownHostException("Unapproved transport host");
+        }
+        return snapshot.clone();
+      }
+      public String resolveCanonicalHostname(String host) throws UnknownHostException {
+        resolve(host);
+        return host;
+      }
+    };
+  }
+
+  private static String header(ClassicHttpResponse response, String name) {
+    var value = response.getFirstHeader(name);
+    return value == null ? ("Content-Type".equals(name) ? "application/octet-stream" : null) : value.getValue();
+  }
+
+  private record Response(int status, byte[] body, String location, String contentType,
+                          String etag, String lastModified) { }
+
+  @Override @jakarta.annotation.PreDestroy public void close() {
+    synchronized (deadlines) {
+      activeRequests.forEach(HttpGet::cancel);
+      deadlines.shutdownNow();
+    }
   }
 }
