@@ -24,8 +24,9 @@ Java replacement passed integration and browser acceptance.
 - Spring JDBC: explicit SQL and predictable SQLite behavior.
 - Flyway: ordered schema migrations.
 - Xerial SQLite JDBC: local persistence.
-- JDK `HttpClient`: bounded requests, timeouts, redirects, conditional headers,
-  and optional local Sub2API requests.
+- Apache HttpClient 5: collector requests with pinned DNS addresses, bounded
+  bodies and per-hop deadlines. JDK `HttpClient` remains for optional Sub2API
+  and derived Elasticsearch requests.
 - jsoup: static HTML extraction with configured CSS selectors.
 - Apache POI: `.xlsx` export.
 - Official MCP Java SDK: local STDIO server.
@@ -80,9 +81,28 @@ configured source
 - Default per-origin interval is at least five seconds.
 - `401`, `403`, and `429` stop the source run without evasion.
 - Robots denial, a missing terms URL, or an unconfirmed terms state blocks collection.
-- DNS resolution is checked before and after the request; a changed address set fails
-  closed. JDK `HttpClient` does not expose the connected peer address, so a narrow
-  DNS rebinding TOCTOU window remains.
+- Each HTTP hop resolves and validates all destination addresses once. An isolated
+  connection manager connects only to that snapshot, retaining the original Host,
+  TLS server name and certificate hostname verification. Redirect hops repeat the
+  same policy checks and cannot reuse connections from an earlier snapshot.
+- Production address policy accepts ordinary IPv4 unicast after excluding private,
+  shared, loopback, link-local, documentation, benchmarking, multicast and reserved
+  ranges; globally reachable `192.0.0.9` and `192.0.0.10` remain permitted. IPv6
+  supports native global unicast `2000::/3`, excluding protocol assignments
+  `2001::/23`, documentation `2001:db8::/32` and `3fff::/20`, and 6to4 `2002::/16`.
+  Translation, compatible IPv6 and special protocol destinations are outside this
+  supported scope. JDK-normalized IPv4-mapped answers receive the IPv4 checks.
+  Every DNS answer must qualify; one disallowed answer rejects the hop. The
+  explicit private-address override remains available for isolated fixture use.
+  Address classifications follow the [IANA IPv4](https://www.iana.org/assignments/iana-ipv4-special-registry/)
+  and [IPv6](https://www.iana.org/assignments/iana-ipv6-special-registry/) registries;
+  this collector deliberately supports a narrower native IPv6 subset.
+- `timeout_seconds` bounds each transport exchange from connection through body
+  completion. Deadline cancellation closes the active connection, including stalled
+  or slowly streamed bodies. DNS lookup and configured pacing precede this budget;
+  this is not a whole-source deadline. Response bodies remain capped at 2 MiB.
+- These transport guarantees cover Java collector and robots requests. The optional
+  Node browser worker has a separate transport and DNS boundary.
 - List page and item limits are configured and enforced before requests.
 - Every run receives its own status and error summary.
 

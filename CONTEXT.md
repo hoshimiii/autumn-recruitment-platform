@@ -10,6 +10,17 @@ mount/unmount. Full acceptance requires Java/frontend/browser/CLI/MCP/exports.
 
 ## Current Brief
 
+- Current security repair authorization (2026-10-26): target this isolated
+  `codex/security-fixes-20261026` worktree at base `3bd987a`. Repair the Java
+  collector DNS validation-to-connection gap and incomplete response-body timeout.
+  Local edits, required dependency installation, owned fixture services and scoped
+  tests are authorized. No commits, push, PR, deployment, real source/provider
+  requests, production data, credentials or history changes. Stop on a different
+  target, external access barrier or material unapproved scope/cost change.
+  Completion requires local boundary regression, compatible normal flows, required
+  checks and root independent review. Earlier publication/merge authorizations
+  below are historical and do not authorize publication of this repair.
+
 - Active review-fix and merge authorization (2026-10-11): user requested repair
   of Codex findings followed by merging the same PR #1 into main. Scope only
   legacy identity compatibility, browser failure classification, complete row
@@ -71,6 +82,13 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 
 ## Pending List
 
+- Current security repair [done, locally accepted 2026-10-26]: Java collector pins the vetted address snapshot per
+  HTTP hop and cancels active transport/body reads at the configured deadline.
+  Address classification now excludes shared/special-use ranges; native IPv6
+  scope and fixture override are documented in `docs/trd/architecture.md`.
+  Final local checks and root review receipts are recorded below. Node browser
+  transport DNS/private-network verification remains a separate deferred item.
+
 1. Contracts and existing Agent baseline preserved. [done: 57bc7dd, 028f35e]
 2. Canonical identity/evidence and browser task/result protocol. [implemented/tested]
 3. SSO/RBAC and frontend session/capability handling. [implemented; actual Keycloak acceptance passed]
@@ -91,6 +109,34 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
     Java/frontend/worker/E2E and packaged CLI/MCP/export acceptance passed.
 
 ## Verification and Remaining Risk
+
+- Security repair acceptance (2026-10-26): `.\mvnw.cmd package` passed 106 Java
+  tests with zero failures/errors/skips and produced the final executable JAR.
+  The Spring BOM and packaged dependencies agree on HttpClient 5.5.2 / Core 5.3.6.
+  Boundary tests cover pinned DNS, mixed/private/shared/IPv6 address forms,
+  same-origin redirect revalidation, Host/SNI, trusted HTTPS, invalid certificate
+  hostname/trust, header-only stalls, continuous body drip, byte limits, canceled
+  timer removal, active-request shutdown and a successful daily run after timeout.
+- Frontend 28 tests, lint and build passed; Playwright 3 tests passed with actual
+  local Java collection/review/display/exports and desktop/mobile screenshots
+  visually inspected. Canonical Java publication tests read back Markdown/XLSX.
+  Browser-worker 25 tests passed with Chrome; the two-process local provider-stub
+  smoke yielded one manual item, one pending review and zero published jobs.
+- Final packaged CLI `search --keyword Java` returned the expected empty synthetic
+  dataset; `npm run smoke:mcp` passed STDIO initialization, fixed tool discovery
+  and search. Root independently reviewed the pinning, CIDR policy, TLS and
+  timer/active-request lifecycle in one review cycle and found no concrete
+  surviving Java bypass or regression.
+- One package attempt passed its tests but hit a Windows JAR lock from the owned
+  fixture JVM. After checking and stopping that JVM, the same full package retry
+  passed. Owned fixture/test ports 18189/15173/18082/24350 were clear at closeout.
+  No real source/provider, operational database, deployment, commit, push or
+  history change occurred. Node browser DNS/private-network transport verification
+  remains deferred; the Java fix does not close that separate proof gap.
+- Managed security receipt and exact logs/screenshots:
+  `C:/Users/ADMIN/.codex/state/plugins/codex-security/scans/autumn-recruitment-platform/artifacts-1c853afbc4daaf46d5d2bad6e848417984c9ace94feb7b8c933233189d800c99/report_validation.md`.
+  The original sealed scan remains unchanged. Historical runtime receipts below
+  retain their original dates and scope.
 
 - Review-fix acceptance (2026-10-11): Java 91 tests, no failures/errors/skips,
   fresh packaged JAR; frontend 28 tests, lint/typecheck/build; Playwright 3 tests
@@ -172,7 +218,8 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 - Live Feishu selectors, actual provider calls and browser OIDC CORS/SameSite
   remain unverified. Protocol fixtures are not live source/model acceptance.
 - SQLite still has one writer; no throughput benchmark or distributed-database
-  performance claim. JDK HttpClient DNS TOCTOU remains a limitation.
+  performance claim. The historical JDK collector DNS TOCTOU limitation is the
+  subject of the isolated 2026-10-26 repair above.
 - PR preflight: GitHub API verified main at accepted3e422f7. Normal fetch failed
   because of a broken app-internal refs/codex/turn-diffs/checkpoints reference;
   it was left untouched. Explicit scoped branch push and PR creation succeeded.
@@ -180,8 +227,7 @@ is not production storage. OIDC is explicit; local owner is a loopback trust bou
 
 ## Exact Next Action
 
-No further implementation is required for these four findings. Deliver the
-verified repair commit through PR #1 under the active merge authorization;
-consult its remote state and the ignored merge receipt for final merge evidence.
-Optional live-source setup, deployment and operational database migration remain
-outside this action.
+Local security repair and root review are complete. Deliver the managed receipt
+and this isolated worktree for the root's integration. Publication, deployment,
+real-source acceptance, history cleanup and the separate Node browser transport
+proof gap remain outside this local action.

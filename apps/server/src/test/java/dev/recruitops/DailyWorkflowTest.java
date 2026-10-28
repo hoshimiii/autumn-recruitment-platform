@@ -78,4 +78,32 @@ class DailyWorkflowTest extends CollectorTestSupport {
       executor.shutdownNow();
     }
   }
+
+  @Test void stalledBodyReleasesDailyRunAndNextRunSucceeds() throws Exception {
+    route("/robots.txt", 200, "text/plain", () -> "User-agent: *\nAllow: /", null);
+    var attempts = new java.util.concurrent.atomic.AtomicInteger();
+    CountDownLatch socketClosed = new CountDownLatch(1);
+    route("/stream", exchange -> {
+      if (attempts.incrementAndGet() > 1) {
+        respond(exchange, 200, "application/json", "{\"items\":[]}");
+        return;
+      }
+      exchange.sendResponseHeaders(200, 0);
+      try {
+        while (true) {
+          exchange.getResponseBody().write(' '); exchange.getResponseBody().flush(); Thread.sleep(100);
+        }
+      } catch (java.io.IOException expected) { socketClosed.countDown(); }
+      catch (InterruptedException error) { Thread.currentThread().interrupt(); }
+      finally { exchange.close(); }
+    });
+    long id = insertSource("/stream", "JSON", true, "ALLOWED", CONFIRMED, 5,
+        "{\"itemsPath\":\"items\"}", "{}");
+    jdbc.update("UPDATE sources SET timeout_seconds=1 WHERE id=?", id);
+    org.junit.jupiter.api.Assertions.assertTimeoutPreemptively(java.time.Duration.ofSeconds(5), () -> {
+      assertEquals("PARTIAL_FAILURE", workflow.runDaily().status());
+      assertTrue(socketClosed.await(2, TimeUnit.SECONDS));
+      assertEquals("SUCCESS", workflow.runDaily().status());
+    });
+  }
 }
